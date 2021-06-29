@@ -1,7 +1,7 @@
 use super::puzzle::Puzzle;
 use std::collections::HashSet;
-use std::collections::HashMap;
 mod row_solver;
+mod latin_solver;
 
 // (row, column)
 #[derive(Clone)]
@@ -148,166 +148,6 @@ impl<'a> Solver<'a> {
         return true;
     }
 
-    fn handle_solved_cells(& mut self) {
-        while self.recently_solved.len() > 0 {
-            let c = self.recently_solved.pop().unwrap();
-            let value = self.puzzle.grid[c.0][c.1].iter().next().unwrap().clone();
-            for i in 0..self.puzzle.size {
-                if i != c.1 {
-                    self.remove(&Coordinate(c.0, i), &value);
-                }
-                if i != c.0 {
-                    self.remove(&Coordinate(i, c.1), &value);
-                }
-            }
-        }
-    }
-
-    fn handle_unique_in_row(& mut self) {
-        while self.recently_unique_in_row.len() > 0 {
-            let (row, value) = self.recently_unique_in_row.pop().unwrap();
-            for i in 0..self.puzzle.size {
-                if self.puzzle.grid[row][i].contains(&value) {
-                    self.set(&Coordinate(row, i), &value);
-                }
-            }
-        }
-    }
-
-    fn handle_unique_in_column(& mut self) {
-        while self.recently_unique_in_column.len() > 0 {
-            let (column, value) = self.recently_unique_in_column.pop().unwrap();
-            for i in 0..self.puzzle.size {
-                if self.puzzle.grid[i][column].contains(&value) {
-                    self.set(&Coordinate(i, column), &value);
-                }
-            }
-        }
-    }
-
-    fn row_pair_solve(& mut self, index: usize) {
-        let n = self.puzzle.size;
-        let mut pairs: HashMap<(u8, u8), usize> = HashMap::new();
-        for i in 0..n {
-            if self.puzzle.grid[index][i].len() == 2 {
-                let min = *self.puzzle.grid[index][i].iter().min().unwrap();
-                let max = *self.puzzle.grid[index][i].iter().max().unwrap();
-                let pair = (min, max);
-                match pairs.get(&pair) {
-                    Some(position) => {
-                        // This pair appeared before.
-                        // No other cell can have one of these two values.
-                        for j in 0..n {
-                            if j != *position && j != i {
-                                self.remove(&Coordinate(index, j), &min);
-                                self.remove(&Coordinate(index, j), &max);
-                            }
-                        }
-                    },
-                    None => {
-                        // Add this pair to our map
-                        pairs.insert(pair, i);
-                    },
-                };
-            }
-        }
-    }
-
-    fn column_pair_solve(& mut self, index: usize) {
-        let n = self.puzzle.size;
-        let mut pairs: HashMap<(u8, u8), usize> = HashMap::new();
-        for i in 0..n {
-            if self.puzzle.grid[i][index].len() == 2 {
-                let min = *self.puzzle.grid[i][index].iter().min().unwrap();
-                let max = *self.puzzle.grid[i][index].iter().max().unwrap();
-                let pair = (min, max);
-                match pairs.get(&pair) {
-                    Some(position) => {
-                        // This pair appeared before.
-                        // No other cell can have one of these two values.
-                        for j in 0..n {
-                            if j != *position && j != i {
-                                self.remove(&Coordinate(j, index), &min);
-                                self.remove(&Coordinate(j, index), &max);
-                            }
-                        }
-                    },
-                    None => {
-                        // Add this pair to our map
-                        pairs.insert(pair, i);
-                    },
-                };
-            }
-        }
-    }
-
-    // For any given value, if two rows can only put that value in the same two columns, then no
-    // other cell in those columns can be that value.
-    fn rows_with_matching_pair_solve(& mut self) {
-        for i in 0..self.puzzle.size {
-            let rows_with_two_options_left:Vec<usize> = self.value_count_by_row.iter().enumerate().filter(|(_index, x)| x[i] == 2).map(|(index, _x)| index).collect();
-            if rows_with_two_options_left.len() < 2 {
-                continue;
-            }
-            let mut pairs: HashMap<(usize, usize), usize> = HashMap::new();
-            for row in rows_with_two_options_left {
-                let mut columns = self.puzzle.grid[row].iter().enumerate().filter(|(_index, x)| x.contains(&(i as u8))).map(|(index, _x)| index);
-                let pair: (usize, usize) = (columns.next().unwrap(), columns.next().unwrap());
-                if pairs.contains_key(&pair) {
-                    let other_row = pairs.get(&pair).unwrap();
-                    // Remove all intances of i in the two columns
-                    // (unless they are in one of the two rows)
-                    for j in 0..self.puzzle.size {
-                        if j != row && j != *other_row {
-                            self.remove(&Coordinate(j, pair.0), &(i as u8));
-                            self.remove(&Coordinate(j, pair.1), &(i as u8));
-                        }
-                    }
-
-                } else {
-                    pairs.insert(pair, row);
-                }
-            }
-        }
-    }
-
-    fn columns_with_matching_pair_solve(& mut self) {
-        for i in 0..self.puzzle.size {
-            let columns_with_two_options_left:Vec<usize> = self.value_count_by_column.iter().enumerate().filter(|(_index, x)| x[i] == 2).map(|(index, _x)| index).collect();
-            if columns_with_two_options_left.len() < 2 {
-                continue;
-            }
-            let mut pairs: HashMap<(usize, usize), usize> = HashMap::new();
-            for column in columns_with_two_options_left {
-                let mut rows = self.puzzle.grid.iter().enumerate().filter(|(_index, x)| x[column].contains(&(i as u8))).map(|(index, _x)| index);
-                let pair: (usize, usize) = (rows.next().unwrap(), rows.next().unwrap());
-                if pairs.contains_key(&pair) {
-                    let other_column = pairs.get(&pair).unwrap();
-                    // Remove all intances of i in the two columns
-                    // (unless they are in one of the two rows)
-                    for j in 0..self.puzzle.size {
-                        if j != column && j != *other_column {
-                            self.remove(&Coordinate(pair.0, j), &(i as u8));
-                            self.remove(&Coordinate(pair.1, j), &(i as u8));
-                        }
-                    }
-
-                } else {
-                    pairs.insert(pair, column);
-                }
-            }
-        }
-    }
-
-    fn pair_solve(& mut self) {
-        for i in 0..self.puzzle.size {
-            self.row_pair_solve(i);
-            self.column_pair_solve(i);
-        }
-        self.rows_with_matching_pair_solve();
-        self.columns_with_matching_pair_solve();
-    }
-
     fn view_solve(& mut self) -> bool {
         for i in 0..self.puzzle.size {
             for d in [Direction::NORTH, Direction::EAST, Direction::SOUTH, Direction::WEST] {
@@ -383,14 +223,6 @@ impl<'a> Solver<'a> {
 
         return still_potentially_solvable;
     }
-
-    fn simple_solve(& mut self) {
-        while self.recently_solved.len() > 0 || self.recently_unique_in_row.len() > 0 || self.recently_unique_in_column.len() > 0 {
-            self.handle_solved_cells();
-            self.handle_unique_in_row();
-            self.handle_unique_in_column();
-        }
-    }
 }
 
 pub fn solve(p: &mut Puzzle) {
@@ -400,49 +232,27 @@ pub fn solve(p: &mut Puzzle) {
     //solver.analyze_view(Direction::WEST, 4);
     solver.simple_solve();
     solver.view_solve();
-    solver.pair_solve();
 
     while solver.change_flag {
         solver.change_flag = false;
         solver.simple_solve();
         solver.view_solve();
-        solver.pair_solve();
+        // I don't think grouping solve is exponential, but I can't prove it yet, so I'm going to
+        // treat it as exponential and only use it if I can't make progress otherwise.
+        if !solver.change_flag {
+            println!("Grouping solve");
+            solver.grouping_solve();
+        }
         // Since brute force solving the view is potentially exponential, only do it if we
         // can't make progress with a more efficient method.
         if !solver.change_flag {
-            println!("Brute force rows");
+            println!("Brute force views");
             solver.brute_force_view_solve();
         }
     }
 
-    // solver.view_solve();
-    // solver.view_solve();
     // println!("{}\n", solver.puzzle.to_detailed_string());
-    // solver.view_solve();
-    // solver.analyze_view(Direction::SOUTH, 0);
-    // solver.analyze_view(Direction::SOUTH, 1);
-    // solver.analyze_view(Direction::SOUTH, 2);
-    // solver.analyze_view(Direction::SOUTH, 3);
-    // solver.analyze_view(Direction::SOUTH, 4);
-    // solver.analyze_view(Direction::SOUTH, 5);
-    // solver.analyze_view(Direction::EAST, 0);
-    // solver.analyze_view(Direction::EAST, 1);
-    // solver.analyze_view(Direction::EAST, 2);
-    // solver.analyze_view(Direction::EAST, 3);
-    // solver.analyze_view(Direction::EAST, 4);
-    // solver.analyze_view(Direction::EAST, 5);
-    // solver.analyze_view(Direction::WEST, 0);
-    // solver.analyze_view(Direction::WEST, 1);
-    // solver.analyze_view(Direction::WEST, 2);
-    // solver.analyze_view(Direction::WEST, 3);
-    // solver.analyze_view(Direction::WEST, 4);
-    // solver.analyze_view(Direction::WEST, 5);
-    // solver.analyze_view(Direction::NORTH, 0);
-    // solver.analyze_view(Direction::NORTH, 1);
-    // solver.analyze_view(Direction::NORTH, 2);
-    // solver.analyze_view(Direction::NORTH, 3);
-    // solver.analyze_view(Direction::NORTH, 4);
-    // solver.analyze_view(Direction::NORTH, 5);
+    // solver.brute_force_view_solve();
 }
 
 

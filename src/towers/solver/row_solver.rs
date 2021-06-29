@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 use std::cmp;
 
+// Solver methods based on the fact that each row/column must respect its view hint.
+
 // TODO: This might not be necessary now that we have a better view solver.
 // pub fn max_analysis(view: u8, row: &Vec<&HashSet<u8>>) -> (bool, Vec<(usize, u8)>) {
 //     let n = row.len();
