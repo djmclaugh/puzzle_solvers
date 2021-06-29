@@ -282,7 +282,18 @@ impl<'a> Solver<'a> {
                 panic!();
             }
         }
-        //
+
+        let (still_potentially_solvable_2, to_remove_2) = row_solver::trial_solve(view, &get_vec(self.puzzle, &from, index));
+
+        for i in to_remove_2 {
+            let c = get_coordinate(&from, n, index, i.0);
+            if !self.remove(&c, &i.1) {
+                println!("{}", self.puzzle.to_detailed_string());
+                println!("{:?} {}", c, i.1);
+                panic!();
+            }
+        }
+
         // let (still_potentially_solvable_2, to_remove_2) = row_solver::max_analysis(view, &get_vec(self.puzzle, &from, index));
         // for i in to_remove_2 {
         //     let c = get_coordinate(&from, n, index, i.0);
@@ -291,7 +302,7 @@ impl<'a> Solver<'a> {
         //         panic!();
         //     }
         // }
-        return still_potentially_solvable_1;// && still_potentially_solvable_2;
+        return still_potentially_solvable_1 && still_potentially_solvable_2;
     }
 
     fn simple_solve(& mut self) {
@@ -313,14 +324,41 @@ pub fn solve(p: &mut Puzzle) {
     solver.pair_solve();
 
     while solver.change_flag {
+        println!("{}\n", solver.puzzle.to_detailed_string());
         solver.change_flag = false;
         solver.simple_solve();
         solver.view_solve();
         solver.pair_solve();
     }
 
-    println!("{}\n", solver.puzzle.to_detailed_string());
-    solver.analyze_view(Direction::NORTH, 4);
+    // solver.view_solve();
+    // solver.view_solve();
+    // println!("{}\n", solver.puzzle.to_detailed_string());
+    // solver.view_solve();
+    // solver.analyze_view(Direction::SOUTH, 0);
+    // solver.analyze_view(Direction::SOUTH, 1);
+    // solver.analyze_view(Direction::SOUTH, 2);
+    // solver.analyze_view(Direction::SOUTH, 3);
+    // solver.analyze_view(Direction::SOUTH, 4);
+    // solver.analyze_view(Direction::SOUTH, 5);
+    // solver.analyze_view(Direction::EAST, 0);
+    // solver.analyze_view(Direction::EAST, 1);
+    // solver.analyze_view(Direction::EAST, 2);
+    // solver.analyze_view(Direction::EAST, 3);
+    // solver.analyze_view(Direction::EAST, 4);
+    // solver.analyze_view(Direction::EAST, 5);
+    // solver.analyze_view(Direction::WEST, 0);
+    // solver.analyze_view(Direction::WEST, 1);
+    // solver.analyze_view(Direction::WEST, 2);
+    // solver.analyze_view(Direction::WEST, 3);
+    // solver.analyze_view(Direction::WEST, 4);
+    // solver.analyze_view(Direction::WEST, 5);
+    // solver.analyze_view(Direction::NORTH, 0);
+    // solver.analyze_view(Direction::NORTH, 1);
+    // solver.analyze_view(Direction::NORTH, 2);
+    // solver.analyze_view(Direction::NORTH, 3);
+    // solver.analyze_view(Direction::NORTH, 4);
+    // solver.analyze_view(Direction::NORTH, 5);
 }
 
 
