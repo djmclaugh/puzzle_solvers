@@ -241,17 +241,89 @@ impl<'a> Solver<'a> {
         }
     }
 
+    // For any given value, if two rows can only put that value in the same two columns, then no
+    // other cell in those columns can be that value.
+    fn rows_with_matching_pair_solve(& mut self) {
+        for i in 0..self.puzzle.size {
+            let rows_with_two_options_left:Vec<usize> = self.value_count_by_row.iter().enumerate().filter(|(_index, x)| x[i] == 2).map(|(index, _x)| index).collect();
+            if rows_with_two_options_left.len() < 2 {
+                continue;
+            }
+            let mut pairs: HashMap<(usize, usize), usize> = HashMap::new();
+            for row in rows_with_two_options_left {
+                let mut columns = self.puzzle.grid[row].iter().enumerate().filter(|(_index, x)| x.contains(&(i as u8))).map(|(index, _x)| index);
+                let pair: (usize, usize) = (columns.next().unwrap(), columns.next().unwrap());
+                if pairs.contains_key(&pair) {
+                    let other_row = pairs.get(&pair).unwrap();
+                    // Remove all intances of i in the two columns
+                    // (unless they are in one of the two rows)
+                    for j in 0..self.puzzle.size {
+                        if j != row && j != *other_row {
+                            self.remove(&Coordinate(j, pair.0), &(i as u8));
+                            self.remove(&Coordinate(j, pair.1), &(i as u8));
+                        }
+                    }
+
+                } else {
+                    pairs.insert(pair, row);
+                }
+            }
+        }
+    }
+
+    fn columns_with_matching_pair_solve(& mut self) {
+        for i in 0..self.puzzle.size {
+            let columns_with_two_options_left:Vec<usize> = self.value_count_by_column.iter().enumerate().filter(|(_index, x)| x[i] == 2).map(|(index, _x)| index).collect();
+            if columns_with_two_options_left.len() < 2 {
+                continue;
+            }
+            let mut pairs: HashMap<(usize, usize), usize> = HashMap::new();
+            for column in columns_with_two_options_left {
+                let mut rows = self.puzzle.grid.iter().enumerate().filter(|(_index, x)| x[column].contains(&(i as u8))).map(|(index, _x)| index);
+                let pair: (usize, usize) = (rows.next().unwrap(), rows.next().unwrap());
+                if pairs.contains_key(&pair) {
+                    let other_column = pairs.get(&pair).unwrap();
+                    // Remove all intances of i in the two columns
+                    // (unless they are in one of the two rows)
+                    for j in 0..self.puzzle.size {
+                        if j != column && j != *other_column {
+                            self.remove(&Coordinate(pair.0, j), &(i as u8));
+                            self.remove(&Coordinate(pair.1, j), &(i as u8));
+                        }
+                    }
+
+                } else {
+                    pairs.insert(pair, column);
+                }
+            }
+        }
+    }
+
     fn pair_solve(& mut self) {
         for i in 0..self.puzzle.size {
             self.row_pair_solve(i);
             self.column_pair_solve(i);
         }
+        self.rows_with_matching_pair_solve();
+        self.columns_with_matching_pair_solve();
     }
 
     fn view_solve(& mut self) -> bool {
         for i in 0..self.puzzle.size {
             for d in [Direction::NORTH, Direction::EAST, Direction::SOUTH, Direction::WEST] {
                 let still_potentially_solvable = self.analyze_view(d, i);
+                if !still_potentially_solvable {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    fn brute_force_view_solve(& mut self) -> bool {
+        for i in 0..self.puzzle.size {
+            for d in [Direction::NORTH, Direction::EAST, Direction::SOUTH, Direction::WEST] {
+                let still_potentially_solvable = self.brute_force_view(d, i);
                 if !still_potentially_solvable {
                     return false;
                 }
@@ -272,9 +344,9 @@ impl<'a> Solver<'a> {
             return true;
         }
 
-        let (still_potentially_solvable_1, to_remove_1) = row_solver::solve(view, &get_vec(self.puzzle, &from, index));
+        let (still_potentially_solvable, to_remove) = row_solver::solve(view, &get_vec(self.puzzle, &from, index));
 
-        for i in to_remove_1 {
+        for i in to_remove {
             let c = get_coordinate(&from, n, index, i.0);
             if !self.remove(&c, &i.1) {
                 println!("{}", self.puzzle.to_detailed_string());
@@ -283,9 +355,24 @@ impl<'a> Solver<'a> {
             }
         }
 
-        let (still_potentially_solvable_2, to_remove_2) = row_solver::trial_solve(view, &get_vec(self.puzzle, &from, index));
+        return still_potentially_solvable;
+    }
 
-        for i in to_remove_2 {
+    fn brute_force_view(& mut self, from: Direction, index: usize) -> bool {
+        let n = self.puzzle.size;
+        let view:u8 = match from {
+            Direction::NORTH => self.puzzle.north[index],
+            Direction::EAST => self.puzzle.east[index],
+            Direction::SOUTH => self.puzzle.south[index],
+            Direction::WEST => self.puzzle.west[index],
+        };
+        if view == 0 {
+            return true;
+        }
+
+        let (still_potentially_solvable, to_remove) = row_solver::trial_solve(view, &get_vec(self.puzzle, &from, index));
+
+        for i in to_remove {
             let c = get_coordinate(&from, n, index, i.0);
             if !self.remove(&c, &i.1) {
                 println!("{}", self.puzzle.to_detailed_string());
@@ -294,15 +381,7 @@ impl<'a> Solver<'a> {
             }
         }
 
-        // let (still_potentially_solvable_2, to_remove_2) = row_solver::max_analysis(view, &get_vec(self.puzzle, &from, index));
-        // for i in to_remove_2 {
-        //     let c = get_coordinate(&from, n, index, i.0);
-        //     if !self.remove(&c, &i.1) {
-        //         println!("{:?} {}", c, i.1);
-        //         panic!();
-        //     }
-        // }
-        return still_potentially_solvable_1 && still_potentially_solvable_2;
+        return still_potentially_solvable;
     }
 
     fn simple_solve(& mut self) {
@@ -324,11 +403,16 @@ pub fn solve(p: &mut Puzzle) {
     solver.pair_solve();
 
     while solver.change_flag {
-        println!("{}\n", solver.puzzle.to_detailed_string());
         solver.change_flag = false;
         solver.simple_solve();
         solver.view_solve();
         solver.pair_solve();
+        // Since brute force solving the view is potentially exponential, only do it if we
+        // can't make progress with a more efficient method.
+        if !solver.change_flag {
+            println!("Brute force rows");
+            solver.brute_force_view_solve();
+        }
     }
 
     // solver.view_solve();
