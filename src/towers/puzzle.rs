@@ -58,14 +58,6 @@ pub struct Puzzle {
 }
 
 impl Puzzle {
-    pub fn row(&self, index: usize) -> Vec<&HashSet<u8>> {
-        return self.grid[index].iter().map(|x| x).collect();
-    }
-
-    pub fn column(&self, index: usize) -> Vec<&HashSet<u8>> {
-        return self.grid.iter().map(|x| &x[index]).collect();
-    }
-
     // pub fn to_string(&self) -> String {
     //   let n = self.size;
     //   let mut rows: Vec<String> = Vec::new();

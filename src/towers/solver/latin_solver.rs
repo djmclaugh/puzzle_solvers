@@ -1,8 +1,10 @@
 use super::Coordinate;
 use super::Solver;
 use std::collections::HashSet;
+mod graph_solver;
+use graph_solver::Possibility;
 
-// Returns how many times it had to back-track
+// Returns how many times it had to backtrack
 fn increase_counter(counter: &mut Vec<usize>, pos: usize, max: usize) -> usize {
     let size = counter.len();
     let mut backtrack = 0;
@@ -201,5 +203,15 @@ impl<'a> Solver<'a> {
 
         }
         return to_remove;
+    }
+
+    pub fn graph_solve(&mut self) -> Vec<(HashSet<Possibility>, Vec<Vec<HashSet<u8>>>)> {
+        let mut g: graph_solver::Graph = graph_solver::Graph::new(&self.puzzle.grid);
+        let to_remove = g.find_impossibilities();
+        for remove in to_remove {
+            self.remove(&Coordinate(remove.0 as usize, remove.1 as usize), &remove.2);
+        }
+        // Return maximal implied grids incase we want to do row analysis on them.
+        return g.maximal_implied_grids();
     }
 }

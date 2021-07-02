@@ -27,10 +27,18 @@ enum Direction {
     WEST,
 }
 
-fn get_vec<'a>(p: & 'a Puzzle, d: &Direction, i: usize) -> Vec<&'a HashSet<u8>> {
+pub fn row(grid: &Vec<Vec<HashSet<u8>>>, index: usize) -> Vec<&HashSet<u8>> {
+    return grid[index].iter().map(|x| x).collect();
+}
+
+pub fn column(grid: &Vec<Vec<HashSet<u8>>>, index: usize) -> Vec<&HashSet<u8>> {
+    return grid.iter().map(|x| &x[index]).collect();
+}
+
+fn get_vec<'a>(grid: &'a Vec<Vec<HashSet<u8>>>, d: &Direction, i: usize) -> Vec<&'a HashSet<u8>> {
     let mut vec = match d {
-        Direction::NORTH | Direction::SOUTH => p.column(i),
-        Direction::EAST | Direction::WEST => p.row(i),
+        Direction::NORTH | Direction::SOUTH => column(grid, i),
+        Direction::EAST | Direction::WEST => row(grid, i),
     };
 
     match d {
@@ -160,8 +168,21 @@ impl<'a> Solver<'a> {
         return true;
     }
 
+    fn view_solve_with_grid(& mut self, grid: &Vec<Vec<HashSet<u8>>>) -> bool {
+        for i in 0..self.puzzle.size {
+            for d in [Direction::NORTH, Direction::EAST, Direction::SOUTH, Direction::WEST] {
+                let still_potentially_solvable = self.analyze_view_with_grid(d, i, grid);
+                if !still_potentially_solvable {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     fn brute_force_view_solve(& mut self) -> bool {
         for i in 0..self.puzzle.size {
+            // println!("Brute force: {} of {}", i + 1, self.puzzle.size);
             for d in [Direction::NORTH, Direction::EAST, Direction::SOUTH, Direction::WEST] {
                 let still_potentially_solvable = self.brute_force_view(d, i);
                 if !still_potentially_solvable {
@@ -184,7 +205,7 @@ impl<'a> Solver<'a> {
             return true;
         }
 
-        let (still_potentially_solvable, to_remove) = row_solver::solve(view, &get_vec(self.puzzle, &from, index));
+        let (still_potentially_solvable, to_remove) = row_solver::solve(view, &get_vec(&self.puzzle.grid, &from, index));
 
         for i in to_remove {
             let c = get_coordinate(&from, n, index, i.0);
@@ -194,6 +215,22 @@ impl<'a> Solver<'a> {
                 panic!();
             }
         }
+
+        return still_potentially_solvable;
+    }
+
+    fn analyze_view_with_grid(& mut self, from: Direction, index: usize, grid: &Vec<Vec<HashSet<u8>>>) -> bool {
+        let view:u8 = match from {
+            Direction::NORTH => self.puzzle.north[index],
+            Direction::EAST => self.puzzle.east[index],
+            Direction::SOUTH => self.puzzle.south[index],
+            Direction::WEST => self.puzzle.west[index],
+        };
+        if view == 0 {
+            return true;
+        }
+
+        let (still_potentially_solvable, _to_remove) = row_solver::solve(view, &get_vec(grid, &from, index));
 
         return still_potentially_solvable;
     }
@@ -210,7 +247,7 @@ impl<'a> Solver<'a> {
             return true;
         }
 
-        let (still_potentially_solvable, to_remove) = row_solver::trial_solve(view, &get_vec(self.puzzle, &from, index));
+        let (still_potentially_solvable, to_remove) = row_solver::trial_solve(view, &get_vec(&self.puzzle.grid, &from, index));
 
         for i in to_remove {
             let c = get_coordinate(&from, n, index, i.0);
@@ -243,6 +280,24 @@ pub fn solve(p: &mut Puzzle) {
             println!("Grouping solve");
             solver.grouping_solve();
         }
+
+        // I don't think graph solve is exponential, but I haven't proven it yet, so I'm going to
+        // treat it as exponential and only use it if I can't make progress otherwise.
+        if !solver.change_flag {
+            println!("Graph solve");
+            let maximal_graphs = solver.graph_solve();
+            if !solver.change_flag {
+                println!("Cross solve");
+                for (class, grid) in maximal_graphs {
+                    if !solver.view_solve_with_grid(&grid) {
+                        for p in class {
+                            solver.remove(&Coordinate(p.0 as usize, p.1 as usize), &p.2);
+                        }
+                    }
+                }
+            }
+        }
+
         // Since brute force solving the view is potentially exponential, only do it if we
         // can't make progress with a more efficient method.
         if !solver.change_flag {
@@ -250,6 +305,10 @@ pub fn solve(p: &mut Puzzle) {
             solver.brute_force_view_solve();
         }
     }
+
+    // I can see what this cell can't be this value, but I need to think how I can describe the
+    // process to find the reasoning...
+    //solver.remove(&Coordinate(1, 3), &2);
 
     // println!("{}\n", solver.puzzle.to_detailed_string());
     // solver.brute_force_view_solve();

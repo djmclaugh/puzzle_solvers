@@ -171,7 +171,10 @@ pub fn solve(view: u8, row: &Vec<&HashSet<u8>>) -> (bool, Vec<(usize, u8)>) {
     let mut latest_pos_so_far = n;
     for v in (0..n).rev() {
         let value = v as u8;
-        let earliest = row.iter().position(|x| x.contains(&value)).unwrap();
+        let earliest = match row.iter().position(|x| x.contains(&value)) {
+            Some(x) => x,
+            None => { return (false, Vec::new()); },
+        };
         let latest = n - 1 - row.iter().rev().position(|x| x.contains(&value)).unwrap();
         if latest <= earliest_pos_so_far {
           values_seen_for_sure.push(value);
