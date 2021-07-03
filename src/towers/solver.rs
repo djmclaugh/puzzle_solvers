@@ -3,6 +3,8 @@ use std::collections::HashSet;
 mod row_solver;
 mod latin_solver;
 
+use std::time::{Instant};
+
 // (row, column)
 #[derive(Clone)]
 #[derive(Debug)]
@@ -263,31 +265,31 @@ impl<'a> Solver<'a> {
 }
 
 pub fn solve(p: &mut Puzzle) {
+    let start = Instant::now();
     initial_view_solve(p);
     let mut solver = Solver::new(p);
     //println!("{}", solver.puzzle.to_detailed_string());
     //solver.analyze_view(Direction::WEST, 4);
-    solver.simple_solve();
-    solver.view_solve();
+    solver.change_flag = true;
 
     while solver.change_flag {
         solver.change_flag = false;
         solver.simple_solve();
         solver.view_solve();
-        // I don't think grouping solve is exponential, but I can't prove it yet, so I'm going to
-        // treat it as exponential and only use it if I can't make progress otherwise.
+        // I don't think grouping solve is exponential, but I haven't proven it yet, so I'm going
+        // to treat it as exponential and only use it if I can't make progress otherwise.
         if !solver.change_flag {
-            println!("Grouping solve");
             solver.grouping_solve();
         }
 
         // I don't think graph solve is exponential, but I haven't proven it yet, so I'm going to
         // treat it as exponential and only use it if I can't make progress otherwise.
         if !solver.change_flag {
-            println!("Graph solve");
+            let now = Instant::now();
             let maximal_graphs = solver.graph_solve();
+            println!("Graph solve: {:>8}", now.elapsed().as_micros());
             if !solver.change_flag {
-                println!("Cross solve");
+                let now = Instant::now();
                 for (class, grid) in maximal_graphs {
                     if !solver.view_solve_with_grid(&grid) {
                         for p in class {
@@ -295,14 +297,16 @@ pub fn solve(p: &mut Puzzle) {
                         }
                     }
                 }
+                println!("Cross solve: {:>8}", now.elapsed().as_micros());
             }
         }
 
         // Since brute force solving the view is potentially exponential, only do it if we
         // can't make progress with a more efficient method.
         if !solver.change_flag {
-            println!("Brute force views");
+            let now = Instant::now();
             solver.brute_force_view_solve();
+            println!("Force views: {:>8}", now.elapsed().as_micros());
         }
     }
 
@@ -312,6 +316,13 @@ pub fn solve(p: &mut Puzzle) {
 
     // println!("{}\n", solver.puzzle.to_detailed_string());
     // solver.brute_force_view_solve();
+    let duration = start.elapsed();
+    println!("\nDone! Total Time: {:>8}", duration.as_micros());
+    if duration.as_secs() >= 1 {
+        println!("X Took more than a second.");
+    } else {
+        println!("Under a second!");
+    }
 }
 
 

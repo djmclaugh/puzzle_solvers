@@ -47,8 +47,10 @@ impl Possibility {
 pub struct Graph {
     n: u8,
     nodes: Vec<Possibility>,
-    implication_map: HashMap<Possibility, HashSet<Possibility>>,
-    implied_by_map: HashMap<Possibility, HashSet<Possibility>>,
+    forced_choices: HashMap<Possibility, HashSet<Possibility>>,
+    choices_that_force: HashMap<Possibility, HashSet<Possibility>>,
+    // forced_removals: HashMap<Possibility, HashSet<Possibility>>,
+    // choices_that_remove: HashMap<Possibility, HashSet<Possibility>>,
     possibilities_by_pos_pair: HashMap<PosPair, HashSet<Possibility>>,
     possibilities_by_row_pair: HashMap<RowPair, HashSet<Possibility>>,
     possibilities_by_col_pair: HashMap<ColPair, HashSet<Possibility>>,
@@ -62,8 +64,8 @@ impl Graph {
         let n = grid.len();
 
         let mut nodes: Vec<Possibility> = Vec::new();
-        let mut implication_map: HashMap<Possibility, HashSet<Possibility>> = HashMap::new();
-        let mut implied_by_map: HashMap<Possibility, HashSet<Possibility>> = HashMap::new();
+        let mut forced_choices: HashMap<Possibility, HashSet<Possibility>> = HashMap::new();
+        let mut choices_that_force: HashMap<Possibility, HashSet<Possibility>> = HashMap::new();
         let mut possibilities_by_pos_pair: HashMap<PosPair, HashSet<Possibility>> = HashMap::new();
         let mut possibilities_by_row_pair: HashMap<RowPair, HashSet<Possibility>> = HashMap::new();
         let mut possibilities_by_col_pair: HashMap<ColPair, HashSet<Possibility>> = HashMap::new();
@@ -78,10 +80,10 @@ impl Graph {
                     nodes.push(p);
                     let mut implications = HashSet::new();
                     implications.insert(p);
-                    implication_map.insert(p, implications);
+                    forced_choices.insert(p, implications);
                     let mut implied_by = HashSet::new();
                     implied_by.insert(p);
-                    implied_by_map.insert(p, implied_by);
+                    choices_that_force.insert(p, implied_by);
                     possibilities_by_pos_pair.entry(p.pos()).or_insert(HashSet::new()).insert(p);
                     possibilities_by_row_pair.entry(p.row()).or_insert(HashSet::new()).insert(p);
                     possibilities_by_col_pair.entry(p.col()).or_insert(HashSet::new()).insert(p);
@@ -94,8 +96,8 @@ impl Graph {
         return Graph {
             n: (n as u8),
             nodes,
-            implication_map,
-            implied_by_map,
+            forced_choices,
+            choices_that_force,
             possibilities_by_pos_pair,
             possibilities_by_row_pair,
             possibilities_by_col_pair,
@@ -107,20 +109,20 @@ impl Graph {
 
     // p1 implies p2.
     pub fn add_implication(&mut self, p1: &Possibility, p2: &Possibility) -> bool {
-        if self.implication_map.get(p1).unwrap().contains(p2) && self.implied_by_map.get(p2).unwrap().contains(p1) {
+        if self.forced_choices.get(p1).unwrap().contains(p2) && self.choices_that_force.get(p2).unwrap().contains(p1) {
             // We already know that p1 implies p2.
             return false;
         }
-        self.implication_map.get_mut(p1).unwrap().insert(p2.clone());
-        self.implied_by_map.get_mut(p2).unwrap().insert(p1.clone());
+        self.forced_choices.get_mut(p1).unwrap().insert(p2.clone());
+        self.choices_that_force.get_mut(p2).unwrap().insert(p1.clone());
 
         // Any node that implies p1 must therefore also imply p2.
-        for implier in self.implied_by_map.get(p1).unwrap().clone() {
+        for implier in self.choices_that_force.get(p1).unwrap().clone() {
             self.add_implication(&implier, p2);
         }
 
         // Any node that implied p2 must therefore also be implied by p1.
-        for implied in self.implication_map.get(p2).unwrap().clone() {
+        for implied in self.forced_choices.get(p2).unwrap().clone() {
             self.add_implication(p1, &implied);
         }
 
@@ -137,9 +139,9 @@ impl Graph {
         let mut found_larger = true;
         while found_larger {
             found_larger = false;
-            let num_implied = self.implication_map.get(current).unwrap().len();
-            for implier in self.implied_by_map.get(current).unwrap() {
-                let implier_num_implied = self.implication_map.get(implier).unwrap().len();
+            let num_implied = self.forced_choices.get(current).unwrap().len();
+            for implier in self.choices_that_force.get(current).unwrap() {
+                let implier_num_implied = self.forced_choices.get(implier).unwrap().len();
                 if implier_num_implied > num_implied {
                     current = implier;
                     found_larger = true;
@@ -159,8 +161,8 @@ impl Graph {
         while !nodes_remaining.is_empty() {
             let next = nodes_remaining.iter().next().unwrap();
             let maximal = self.find_maximal_implier(next);
-            maximal_classes.push(self.implied_by_map.get(&maximal).unwrap().clone());
-            nodes_remaining = nodes_remaining.difference(self.implication_map.get(&maximal).unwrap()).map(|x| *x).collect();
+            maximal_classes.push(self.choices_that_force.get(&maximal).unwrap().clone());
+            nodes_remaining = nodes_remaining.difference(self.forced_choices.get(&maximal).unwrap()).map(|x| *x).collect();
         }
         return maximal_classes;
     }
@@ -211,7 +213,7 @@ impl Graph {
     pub fn find_indirect_implications(&mut self, p: &Possibility) -> bool {
         // Indead of looking at the effects of just this node. We'll look at the effects of this
         // node and all of its implied nodes.
-        let implications: &HashSet<Possibility> = self.implication_map.get(p).unwrap();
+        let implications: &HashSet<Possibility> = self.forced_choices.get(p).unwrap();
 
         let mut remaining_by_pos_pair = self.possibilities_by_pos_pair.clone();
         let mut remaining_by_row_pair = self.possibilities_by_row_pair.clone();
@@ -278,21 +280,21 @@ impl Graph {
         self.find_all_direct_implications();
         // Just need to look at one element form each maximal class.
         let mut maximals: Vec<Possibility> = self.maximal_impliers().iter().map(|x| *x.iter().next().unwrap()).collect();
-        let mut found_implication = true;
-        while found_implication {
-            found_implication = false;
-            //println!("going deeper");
+        // let mut found_implication = true;
+        // while found_implication {
+        //     found_implication = false;
+        //     //println!("going deeper");
             for p in maximals.iter() {
-                found_implication = self.find_indirect_implications(p) || found_implication;
+                // found_implication = self.find_indirect_implications(p) || found_implication;
+                self.find_indirect_implications(p);
             }
             maximals = self.maximal_impliers().iter().map(|x| *x.iter().next().unwrap()).collect();
-        }
-        maximals = self.maximal_impliers().iter().map(|x| *x.iter().next().unwrap()).collect();
-        println!("Number of maximal classes: {}", maximals.len());
+        // }
+        //println!("Number of maximal classes: {}", maximals.len());
         for p in maximals.iter() {
-            let set = self.implication_map.get(p).unwrap();
+            let set = self.forced_choices.get(p).unwrap();
             if !is_valid_possibility_set(set) {
-                let mut class: Vec<Possibility> = self.implied_by_map.get(p).unwrap().iter().map(|x| *x).collect();
+                let mut class: Vec<Possibility> = self.choices_that_force.get(p).unwrap().iter().map(|x| *x).collect();
                 to_remove.append(&mut class);
             }
         }
@@ -310,7 +312,7 @@ impl Graph {
         for p in &self.nodes {
             grid[p.0 as usize][p.1 as usize].insert(p.2);
         }
-        for p in self.implication_map.get(&assumption).unwrap() {
+        for p in self.forced_choices.get(&assumption).unwrap() {
             grid[p.0 as usize][p.1 as usize].clear();
             grid[p.0 as usize][p.1 as usize].insert(p.2);
         }
