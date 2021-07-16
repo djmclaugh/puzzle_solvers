@@ -1,5 +1,6 @@
 use super::Coordinate;
 use super::Solver;
+use super::Status;
 use std::collections::HashSet;
 mod graph_solver;
 use graph_solver::Possibility;
@@ -33,9 +34,9 @@ fn columns_that_have_value(row: &Vec<HashSet<u8>>, value: &u8) -> HashSet<u8> {
 impl<'a> Solver<'a> {
     // If a cell has been solved, then no other cell in the same row or column can be that value.
     pub fn handle_solved_cells(& mut self) {
-        while !self.recently_solved.is_empty() {
+        while !self.recently_solved.is_empty() && self.status == Status::InProgress {
             let c = self.recently_solved.pop().unwrap();
-            let value = self.puzzle.grid[c.0][c.1].iter().next().unwrap().clone();
+            let value = self.grid[c.0][c.1].iter().next().unwrap().clone();
             for i in 0..self.puzzle.size {
                 if i != c.1 {
                     self.remove(&Coordinate(c.0, i), &value);
@@ -48,10 +49,10 @@ impl<'a> Solver<'a> {
     }
 
     pub fn handle_unique_in_row(& mut self) {
-        while !self.recently_unique_in_row.is_empty() {
+        while !self.recently_unique_in_row.is_empty() && self.status == Status::InProgress {
             let (row, value) = self.recently_unique_in_row.pop().unwrap();
             for i in 0..self.puzzle.size {
-                if self.puzzle.grid[row][i].contains(&value) {
+                if self.grid[row][i].contains(&value) {
                     self.set(&Coordinate(row, i), &value);
                 }
             }
@@ -59,10 +60,10 @@ impl<'a> Solver<'a> {
     }
 
     pub fn handle_unique_in_column(& mut self) {
-        while !self.recently_unique_in_column.is_empty() {
+        while !self.recently_unique_in_column.is_empty() && self.status == Status::InProgress {
             let (column, value) = self.recently_unique_in_column.pop().unwrap();
             for i in 0..self.puzzle.size {
-                if self.puzzle.grid[i][column].contains(&value) {
+                if self.grid[i][column].contains(&value) {
                     self.set(&Coordinate(i, column), &value);
                 }
             }
@@ -74,7 +75,8 @@ impl<'a> Solver<'a> {
         let has_recently_solved = !self.recently_solved.is_empty();
         let has_unique_in_row = !self.recently_unique_in_row.is_empty();
         let has_unique_in_column = !self.recently_unique_in_column.is_empty();
-        return has_recently_solved || has_unique_in_row || has_unique_in_column;
+        let has_lead = has_recently_solved || has_unique_in_row || has_unique_in_column;
+        return has_lead && self.status == Status::InProgress;
     }
 
     // Makes progress on the puzzle using "simple" methods.
@@ -96,7 +98,7 @@ impl<'a> Solver<'a> {
         let n = self.puzzle.size;
         for i in 0..n {
             // The values of the cells in row i (indexed by column);
-            let row: Vec<&HashSet<u8>> = self.puzzle.grid[i].iter().collect();
+            let row: Vec<&HashSet<u8>> = self.grid[i].iter().collect();
             let to_remove = Solver::row_group_solve(&row);
             for remove in to_remove {
                 self.remove(&Coordinate(i, remove.0), &remove.1);
@@ -104,7 +106,7 @@ impl<'a> Solver<'a> {
         }
         for i in 0..n {
             // The values of the cells in column i (indexed by row);
-            let column: Vec<&HashSet<u8>> = self.puzzle.grid.iter().map(|x| &x[i]).collect();
+            let column: Vec<&HashSet<u8>> = self.grid.iter().map(|x| &x[i]).collect();
             let to_remove = Solver::row_group_solve(&column);
             for remove in to_remove {
                 self.remove(&Coordinate(remove.0, i), &remove.1);
@@ -112,7 +114,7 @@ impl<'a> Solver<'a> {
         }
         for i in 0..n {
             // The columns that contain value i (indexed by row);
-            let value: Vec<HashSet<u8>> = self.puzzle.grid.iter().map(|x| columns_that_have_value(x, &(i as u8))).collect();
+            let value: Vec<HashSet<u8>> = self.grid.iter().map(|x| columns_that_have_value(x, &(i as u8))).collect();
             let value_ref: Vec<&HashSet<u8>> = value.iter().collect();
             let to_remove = Solver::row_group_solve(&value_ref);
             for remove in to_remove {
@@ -206,7 +208,7 @@ impl<'a> Solver<'a> {
     }
 
     pub fn graph_solve(&mut self) -> Vec<(HashSet<Possibility>, Vec<Vec<HashSet<u8>>>)> {
-        let mut g: graph_solver::Graph = graph_solver::Graph::new(&self.puzzle.grid);
+        let mut g: graph_solver::Graph = graph_solver::Graph::new(&self.grid);
         let to_remove = g.find_impossibilities();
         for remove in to_remove {
             self.remove(&Coordinate(remove.0 as usize, remove.1 as usize), &remove.2);

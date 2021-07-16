@@ -10,6 +10,15 @@ fn main() {
     //   ? ? ? ? ? ?
     //     1 ? 2 ?   ");
 
+    // 4*4 unreasonable
+    // let mut p = towers::puzzle::from_string(" \
+    //     ? ? 3 ?
+    //   ? ? ? ? ? ?
+    //   2 ? ? ? ? ?
+    //   2 ? ? ? ? ?
+    //   ? ? ? ? ? 3
+    //     ? ? ? 3   ");
+
     // 5*5 hard
     // let mut p = towers::puzzle::from_string(" \
     //     3 ? ? 4 ?
@@ -31,7 +40,7 @@ fn main() {
     //     ? ? ? 2 ?  ");
 
     // 5*5 unreasonable - Still can't solve!
-    // let mut p = towers::puzzle::from_string(" \
+    // let p = towers::puzzle::Puzzle::from_string(" \
     //     ? ? 3 ? ?
     //   ? ? ? ? ? ? ?
     //   ? ? ? ? ? ? 2
@@ -118,7 +127,7 @@ fn main() {
     //     ? 2 ? 3 ? ?  ");
 
     // 7*7 unreasonable - Can solve, but slower than what I would like.
-    let mut p = towers::puzzle::from_string(" \
+    let p = towers::puzzle::Puzzle::from_string(" \
         ? ? 3 4 ? ? 2
       ? ? ? ? ? ? ? ? 3
       3 ? ? ? ? 5 ? ? ?
@@ -143,6 +152,7 @@ fn main() {
     //   ? ? ? ? ? ? 6 ? ? ? ?
     //     3 5 ? ? 3 3 3 ? 2  ");
 
-    towers::solver::solve(&mut p);
-    println!("{}", p.to_detailed_string());
+    let mut s = towers::solver::Solver::new(&p);
+    s.full_solve();
+    println!("{}", s.to_detailed_string());
 }
