@@ -2,6 +2,7 @@ use super::puzzle::Puzzle;
 use std::collections::HashSet;
 mod row_solver;
 mod latin_solver;
+mod depth_solver;
 
 use std::time::Instant;
 
@@ -81,6 +82,21 @@ fn get_vec<'a>(grid: &'a Vec<Vec<HashSet<u8>>>, d: &Direction, i: usize) -> Vec<
     }
 
     return vec;
+}
+
+fn calculate_view(row: &Vec<u8>) -> u8 {
+    if row.len() == 0 {
+        return 0;
+    }
+    let mut max_so_far = row[0];
+    let mut seen_so_far = 1;
+    for i in 1..row.len() {
+        if row[i] > max_so_far {
+            max_so_far = row[i];
+            seen_so_far += 1;
+        }
+    }
+    return seen_so_far;
 }
 
 // i1 = the row/column chosen
@@ -222,14 +238,12 @@ impl<'a> Solver<'a> {
 
     fn remove(& mut self, c: &Coordinate, value: &u8) {
         let set = self.grid[c.0].get_mut(c.1).unwrap();
-        if set.remove(value) {
+        let has_removed = set.remove(value);
+        if has_removed {
             self.value_count_by_row[c.0][*value as usize] -= 1;
             self.value_count_by_column[c.1][*value as usize] -= 1;
             if set.len() == 1 {
                 self.solved_count += 1;
-                if self.solved_count == self.puzzle.size * self.puzzle.size {
-                    self.status = Status::Solved;
-                }
                 self.recently_solved.push(c.clone());
             }
             if self.value_count_by_row[c.0][*value as usize] == 1 {
@@ -240,6 +254,13 @@ impl<'a> Solver<'a> {
             }
             self.change_flag = true;
             if set.len() == 0 {
+                self.status = Status::Unsolvable;
+            }
+        }
+        if has_removed && self.solved_count == self.puzzle.size * self.puzzle.size {
+            if self.satisfies_contraints() {
+                self.status = Status::Solved;
+            } else {
                 self.status = Status::Unsolvable;
             }
         }
@@ -255,9 +276,64 @@ impl<'a> Solver<'a> {
         return true;
     }
 
+    fn satisfies_contraints(&self) -> bool {
+        let n = self.puzzle.size;
+        // Check if each element in each row is unique.
+        for row in 0..n {
+            let mut seen: HashSet<u8> = HashSet::new();
+            for column in 0..n {
+                if self.grid[row][column].len() != 1 {
+                    return false;
+                } else {
+                    seen.insert(*self.grid[row][column].iter().next().unwrap());
+                }
+            }
+            if seen.len() != n {
+                return false;
+            }
+        }
+        // Check if each element in each column is unique.
+        for column in 0..n {
+            let mut seen: HashSet<u8> = HashSet::new();
+            for row in 0..n {
+                if self.grid[row][column].len() != 1 {
+                    return false;
+                } else {
+                    seen.insert(*self.grid[row][column].iter().next().unwrap());
+                }
+            }
+            if seen.len() != n {
+                return false;
+            }
+        }
+        // Check if each view is respected
+        for d in [Direction::NORTH, Direction::EAST, Direction::SOUTH, Direction::WEST] {
+            let views: &Vec<Option<u8>> = match d {
+                Direction::NORTH => &self.puzzle.north,
+                Direction::EAST => &self.puzzle.east,
+                Direction::SOUTH => &self.puzzle.south,
+                Direction::WEST => &self.puzzle.west,
+            };
+            for index in 0..n {
+                if views[index].is_none() {
+                    continue;
+                }
+                let view = views[index].unwrap();
+                let values: Vec<u8> = get_vec(&self.grid, &d, index).iter().map(|x| *x.iter().next().unwrap()).collect();
+                if calculate_view(&values) != view {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     fn view_solve(& mut self) {
         for i in 0..self.puzzle.size {
             for d in [Direction::NORTH, Direction::EAST, Direction::SOUTH, Direction::WEST] {
+                if self.status == Status::Unsolvable {
+                    return;
+                }
                 let still_potentially_solvable = self.analyze_view(d, i);
                 if !still_potentially_solvable {
                     self.status = Status::Unsolvable;
@@ -371,49 +447,55 @@ impl<'a> Solver<'a> {
 
             // I don't think graph solve is exponential, but I haven't proven it yet, so I'm going to
             // treat it as exponential and only use it if I can't make progress otherwise.
-            if !self.change_flag && self.status == Status::InProgress {
-                let now = Instant::now();
-                let maximal_graphs = self.graph_solve();
-                println!("Graph solve: {:>8}", now.elapsed().as_micros());
-                if !self.change_flag {
-                    let now = Instant::now();
-                    for (class, grid) in maximal_graphs {
-                        if !self.view_solve_with_grid(&grid) {
-                            for p in class {
-                                self.remove(&Coordinate(p.0 as usize, p.1 as usize), &p.2);
-                            }
-                        }
-                    }
-                    println!("Cross solve: {:>8}", now.elapsed().as_micros());
-                }
-            }
+            // if !self.change_flag && self.status == Status::InProgress {
+            //     let now = Instant::now();
+            //     let maximal_graphs = self.graph_solve();
+            //     println!("Graph solve: {:>8}", now.elapsed().as_micros());
+            //     if !self.change_flag {
+            //         let now = Instant::now();
+            //         for (class, grid) in maximal_graphs {
+            //             if !self.view_solve_with_grid(&grid) {
+            //                 for p in class {
+            //                     self.remove(&Coordinate(p.0 as usize, p.1 as usize), &p.2);
+            //                 }
+            //             }
+            //         }
+            //         println!("Cross solve: {:>8}", now.elapsed().as_micros());
+            //     }
+            // }
 
             // Since brute force solving the view is potentially exponential, only do it if we
             // can't make progress with a more efficient method.
-            if !self.change_flag && self.status == Status::InProgress {
-                let now = Instant::now();
-                self.brute_force_view_solve();
-                println!("Force views: {:>8}", now.elapsed().as_micros());
-            }
+            // if !self.change_flag && self.status == Status::InProgress {
+            //     let now = Instant::now();
+            //     self.brute_force_view_solve();
+            //     println!("Force views: {:>8}", now.elapsed().as_micros());
+            // }
 
             // Uncomment to see the progress of the solve at each step.
             // println!("{}\n", self.to_detailed_string());
         }
     }
 
-    pub fn full_solve(&mut self) {
+    pub fn full_solve(&mut self, depth: u8) {
         let start = Instant::now();
 
-        self.non_recursive_solve();
+        self.change_flag = true;
+        while self.change_flag {
+            self.non_recursive_solve();
+            self.change_flag = false;
+            if self.status == Status::InProgress {
+                self.depth_solve(depth);
+            }
+        }
 
-        let duration = start.elapsed();
-        println!("\nDone! Total Time: {:>8}", duration.as_micros());
 
-        println!("\nStatus: {:?}", self.status);
-        if duration.as_secs() >= 1 {
-            println!("X Took more than a second.");
-        } else {
-            println!("Under a second!");
+
+        if depth >= 1 {
+            let duration = start.elapsed();
+            println!("\nDone! Total Time: {}.{:>6}", duration.as_secs(), duration.as_micros() % 1000000);
+            println!("Status: {:?}", self.status);
+            println!("Depth: {:?}", depth);
         }
     }
 

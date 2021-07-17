@@ -45,17 +45,6 @@ pub struct Puzzle {
 }
 
 impl Puzzle {
-    pub fn clone(&self) -> Puzzle {
-        return Puzzle {
-            size: self.size,
-            north: self.north.clone(),
-            east: self.east.clone(),
-            south: self.south.clone(),
-            west: self.west.clone(),
-            grid: self.grid.clone()
-        };
-    }
-
     pub fn from_string(s: &str) -> Puzzle {
         let mut grid = Vec::new();
 
