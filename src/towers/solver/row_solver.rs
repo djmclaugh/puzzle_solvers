@@ -61,88 +61,88 @@ use std::cmp;
 //     return (true, to_remove);
 // }
 
-fn view(row: &Vec<u8>) -> u8 {
-    if row.len() == 0 {
-        return 0;
-    }
-    let mut max_so_far = row[0];
-    let mut seen_so_far = 1;
-    for i in 1..row.len() {
-        if row[i] > max_so_far {
-            max_so_far = row[i];
-            seen_so_far += 1;
-        }
-    }
-    return seen_so_far;
-}
-
-fn has_duplicate(row: &Vec<u8>) -> bool {
-    for i in 0..row.len() {
-        for j in (i+1)..row.len() {
-            if row[i] == row[j] {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-fn all_possibilities(fields: &Vec<Vec<&u8>>, expected_view: u8) -> Vec<Vec<u8>> {
-    let mut counter: Vec<usize> = fields.iter().map(|_x| 0).collect();
-    let mut result: Vec<Vec<u8>> = Vec::new();
-    loop {
-        let possibility: Vec<u8> = fields.iter().enumerate().map(|(index, x)| *x[counter[index]]).collect();
-        if !has_duplicate(&possibility) && view(&possibility) == expected_view {
-            result.push(possibility);
-        }
-        counter[0] += 1;
-        let mut index = 0;
-        while counter[index] >=  fields[index].len() {
-            if index == fields.len() - 1 {
-                return result;
-            }
-            counter[index] = 0;
-            counter[index + 1] += 1;
-            index += 1;
-        }
-    }
-}
-
-fn vec_from_set(set: &HashSet<u8>) -> Vec<&u8> {
-    return set.iter().collect();
-}
-
-// Tries all possibilities and removes the options that are impossible.
-pub fn trial_solve(view: u8, row: &Vec<&HashSet<u8>>) -> (bool, Vec<(usize, u8)>) {
-    let mut to_remove: Vec<(usize, u8)> = Vec::new();
-
-    let mut fields = Vec::new();
-    for x in row {
-        fields.push(vec_from_set(x));
-    }
-    let possibilities = all_possibilities(&fields, view);
-
-    for i in 0..row.len() {
-        if row[i].len() == 1 {
-            continue;
-        }
-        for value in row[i] {
-            let mut found_match = false;
-            // Iterate through all possibilities
-            for p in &possibilities {
-                if p[i] == *value {
-                    found_match = true;
-                    break;
-                }
-            }
-
-            if !found_match {
-                to_remove.push((i, *value));
-            }
-        }
-    }
-    return (true, to_remove);
-}
+// fn view(row: &Vec<u8>) -> u8 {
+//     if row.len() == 0 {
+//         return 0;
+//     }
+//     let mut max_so_far = row[0];
+//     let mut seen_so_far = 1;
+//     for i in 1..row.len() {
+//         if row[i] > max_so_far {
+//             max_so_far = row[i];
+//             seen_so_far += 1;
+//         }
+//     }
+//     return seen_so_far;
+// }
+//
+// fn has_duplicate(row: &Vec<u8>) -> bool {
+//     for i in 0..row.len() {
+//         for j in (i+1)..row.len() {
+//             if row[i] == row[j] {
+//                 return true;
+//             }
+//         }
+//     }
+//     return false;
+// }
+//
+// fn all_possibilities(fields: &Vec<Vec<&u8>>, expected_view: u8) -> Vec<Vec<u8>> {
+//     let mut counter: Vec<usize> = fields.iter().map(|_x| 0).collect();
+//     let mut result: Vec<Vec<u8>> = Vec::new();
+//     loop {
+//         let possibility: Vec<u8> = fields.iter().enumerate().map(|(index, x)| *x[counter[index]]).collect();
+//         if !has_duplicate(&possibility) && view(&possibility) == expected_view {
+//             result.push(possibility);
+//         }
+//         counter[0] += 1;
+//         let mut index = 0;
+//         while counter[index] >=  fields[index].len() {
+//             if index == fields.len() - 1 {
+//                 return result;
+//             }
+//             counter[index] = 0;
+//             counter[index + 1] += 1;
+//             index += 1;
+//         }
+//     }
+// }
+//
+// fn vec_from_set(set: &HashSet<u8>) -> Vec<&u8> {
+//     return set.iter().collect();
+// }
+//
+// // Tries all possibilities and removes the options that are impossible.
+// pub fn trial_solve(view: u8, row: &Vec<&HashSet<u8>>) -> (bool, Vec<(usize, u8)>) {
+//     let mut to_remove: Vec<(usize, u8)> = Vec::new();
+//
+//     let mut fields = Vec::new();
+//     for x in row {
+//         fields.push(vec_from_set(x));
+//     }
+//     let possibilities = all_possibilities(&fields, view);
+//
+//     for i in 0..row.len() {
+//         if row[i].len() == 1 {
+//             continue;
+//         }
+//         for value in row[i] {
+//             let mut found_match = false;
+//             // Iterate through all possibilities
+//             for p in &possibilities {
+//                 if p[i] == *value {
+//                     found_match = true;
+//                     break;
+//                 }
+//             }
+//
+//             if !found_match {
+//                 to_remove.push((i, *value));
+//             }
+//         }
+//     }
+//     return (true, to_remove);
+// }
 
 pub fn solve(view: u8, row: &Vec<&HashSet<u8>>) -> (bool, Vec<(usize, u8)>) {
     let n = row.len();

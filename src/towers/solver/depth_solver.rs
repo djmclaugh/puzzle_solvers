@@ -3,15 +3,17 @@ use super::Coordinate;
 use super::Solver;
 use super::Status;
 
+// (row, column, value)
+#[derive(Clone, Debug, Copy, Hash, PartialEq, Eq)]
+pub struct Triple (usize, usize, u8);
+
 // Solver methods based on making a guess and seeing if we end up with a contradiction.
-impl<'a> Solver<'a> {
-    pub fn depth_solve(& mut self, depth: u8) {
-        if depth <= 0 {
-            return;
-        }
+impl Solver {
+    pub fn depth_solve(& mut self, depth: u8) -> Vec<Solver> {
         let n = self.puzzle.size;
-        let mut to_remove: Option<(Coordinate, u8)> = None;
-        let mut to_set: Option<Vec<Vec<HashSet<u8>>>> = None;
+        let mut to_remove: Option<Triple> = None;
+        let mut can_skip: HashSet<Triple> = HashSet::new();
+        let mut solutions: Vec<Solver> = Vec::new();
 
         for i in 0..n {
             for j in 0..n {
@@ -19,51 +21,57 @@ impl<'a> Solver<'a> {
                 if num == 1 {
                     continue;
                 }
-                if num > 10 {
-                    continue;
-                }
+                let mut found_solution = false;
                 for v in self.grid[i][j].iter() {
+                    if can_skip.contains(&Triple(i, j, *v)) {
+                        continue;
+                    }
                     let mut copy = self.clone();
                     copy.set(&Coordinate(i, j), v);
-                    copy.full_solve(depth - 1);
+                    let mut copy_solutions = copy.full_solve(depth + 1);
                     if copy.status == Status::Unsolvable {
-                        to_remove = Some((Coordinate(i, j), *v));
+                        to_remove = Some(Triple(i, j, *v));
                         break;
-                    } else if copy.status == Status::Solved {
-                        to_set = Some(copy.grid.clone());
-                        break;
+                    } else if copy.status == Status::UniqueSolution || copy.status == Status::MultipleSolutions {
+                        solutions.append(&mut copy_solutions);
+                        if found_solution || copy.status == Status::MultipleSolutions {
+                            self.status = Status::MultipleSolutions;
+                            return solutions;
+                        }
+                        found_solution = true;
+                        // If the copy is as solved as possible and that the current state of the
+                        // copy can lead to a solution, this means that none of it's available
+                        // choices can lead to a contradiction.
+                        for x in i..n {
+                            for y in 0..n{
+                                for value in copy.grid[x][y].iter() {
+                                    can_skip.insert(Triple(x, y, *value));
+                                }
+                            }
+                        }
                     }
                 }
-                if to_remove.is_some() || to_set.is_some() {
+                if to_remove.is_some() {
                     break;
                 }
             }
-            if to_remove.is_some() || to_set.is_some() {
+            if to_remove.is_some() {
                 break;
             }
         }
 
         match to_remove {
             Some(x) => {
-                self.remove(&x.0, &x.1);
+                // We found a contradiction, so remove that possibility.
+                self.remove(&Coordinate(x.0, x.1), &x.2);
             },
             None => {
-                // Do nothing
+                // No contradictions found, so every possible choice from here can lead to a
+                // solution.
+                self.status = Status::MultipleSolutions;
             }
         }
 
-        match to_set {
-            Some(x) => {
-                // Got lucky!
-                for i in 0..n {
-                    for j in 0..n {
-                        self.set(&Coordinate(i, j), x[i][j].iter().next().unwrap());
-                    }
-                }
-            },
-            None => {
-                // Do nothing
-            }
-        }
+        return solutions;
     }
 }

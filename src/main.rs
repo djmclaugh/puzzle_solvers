@@ -1,8 +1,25 @@
 mod towers;
+mod latin;
+mod perm;
 
 fn main() {
+    // let square = latin::square::Square::from_string(" \
+    //    1 2 3
+    //    2 3 1
+    //    3 1 2");
+    //
+    // println!("{}", square.to_string());
+
+
+    println!("main start");
+    let iter = latin::square::SquareIter::new(6);
+    for test in iter {
+       println!("{}\n", test.to_string());
+    }
+
+
     // 4*4 unreasonable
-    // let mut p = towers::puzzle::from_string(" \
+    // let p = towers::puzzle::Puzzle::from_string(" \
     //     ? ? ? ?
     //   3 ? ? ? ? ?
     //   ? ? ? ? ? 2
@@ -30,7 +47,7 @@ fn main() {
     //     ? 4 ? ? 1  ");
 
     // 5*5 unreasonable
-    // let mut p = towers::puzzle::from_string(" \
+    // let p = towers::puzzle::Puzzle::from_string(" \
     //     3 ? 4 ? ?
     //   ? ? ? ? ? ? 1
     //   3 ? ? ? ? ? ?
@@ -39,7 +56,7 @@ fn main() {
     //   ? ? ? ? ? ? ?
     //     ? ? ? 2 ?  ");
 
-    // 5*5 unreasonable - Still can't solve!
+    // 5*5 unreasonable - Depth 4 required to solve!
     // let p = towers::puzzle::Puzzle::from_string(" \
     //     ? ? 3 ? ?
     //   ? ? ? ? ? ? ?
@@ -61,7 +78,7 @@ fn main() {
     //     2 4 3 2 1 2  ");
 
     // 6*6 hard - Still needs to brute force views!
-    // let mut p = towers::puzzle::from_string(" \
+    // let p = towers::puzzle::Puzzle::from_string(" \
     //     ? ? ? ? 2 ?
     //   5 ? ? ? ? ? ? ?
     //   4 3 ? ? ? ? ? 3
@@ -94,7 +111,7 @@ fn main() {
     //     ? 3 1 2 2 3  ");
 
     // 6*6 extreme
-    // let mut p = towers::puzzle::from_string(" \
+    // let p = towers::puzzle::Puzzle::from_string(" \
     //     ? ? 4 3 3 ?
     //   2 ? ? ? ? ? ? ?
     //   ? ? ? ? ? ? ? ?
@@ -105,7 +122,7 @@ fn main() {
     //     4 4 ? ? ? 3  ");
 
     // 6*6 extreme
-    // let mut p = towers::puzzle::from_string(" \
+    // let p = towers::puzzle::Puzzle::from_string(" \
     //     ? ? 3 ? 3 ?
     //   ? ? ? ? ? ? ? ?
     //   1 ? ? ? ? ? 2 4
@@ -116,7 +133,7 @@ fn main() {
     //     4 3 ? ? 2 ?  ");
 
     // 6*6 unreasonable
-    // let mut p = towers::puzzle::from_string(" \
+    // let p = towers::puzzle::Puzzle::from_string(" \
     //     3 ? 3 ? 3 ?
     //   ? ? ? ? ? ? ? 3
     //   ? ? ? ? ? ? ? 3
@@ -139,19 +156,20 @@ fn main() {
     //     ? ? ? ? 1 3 ?  ");
 
     // 8*8 unreasonable.
-    let p = towers::puzzle::Puzzle::from_string(" \
-        4 ? ? 5 2 4 3 ?
-      ? 1 ? ? 2 ? 3 ? ? ?
-      3 ? ? ? ? ? ? ? ? ?
-      3 ? ? 4 ? ? ? ? ? 2
-      2 ? ? ? ? ? ? ? ? 3
-      3 ? 1 ? ? ? ? ? ? 2
-      ? ? 2 ? ? 1 ? ? ? 4
-      2 ? ? ? ? ? ? ? ? 3
-      4 ? ? ? ? ? ? ? ? 3
-        ? 4 2 ? 1 4 ? 4 ");
+    // let p = towers::puzzle::Puzzle::from_string(" \
+    //     4 ? ? 5 2 4 3 ?
+    //   ? 1 ? ? 2 ? 3 ? ? ?
+    //   3 ? ? ? ? ? ? ? ? ?
+    //   3 ? ? 4 ? ? ? ? ? 2
+    //   2 ? ? ? ? ? ? ? ? 3
+    //   3 ? 1 ? ? ? ? ? ? 2
+    //   ? ? 2 ? ? 1 ? ? ? 4
+    //   2 ? ? ? ? ? ? ? ? 3
+    //   4 ? ? ? ? ? ? ? ? 3
+    //     ? 4 2 ? 1 4 ? 4 ");
 
     // 9*9 unreasonable - Can solve! But I think there are multiple answers
+    // There are multiple answers! I might have not correctly copied this puzzle...
     // let p = towers::puzzle::Puzzle::from_string(" \
     //     ? ? ? 4 2 ? 3 ? 4
     //   4 4 2 ? ? ? ? ? ? ? ?
@@ -165,58 +183,18 @@ fn main() {
     //   ? ? ? ? ? ? 6 ? ? ? ?
     //     3 5 ? ? 3 3 3 ? 2  ");
 
-    // let p = towers::puzzle::Puzzle::from_string(" \
-    //     ? ? ? 4 2 ? 3 ? 4
-    //   4 4 2 7 6 8 1 3 9 5 ?
-    //   4 3 ? ? ? ? ? ? 5 ? ?
-    //   ? 9 5 4 3 1 7 8 6 2 4
-    //   ? 7 ? ? ? ? ? ? ? ? 6
-    //   ? 5 ? ? 2 ? 9 6 ? ? 4
-    //   3 6 ? ? ? ? ? ? ? ? ?
-    //   2 8 1 6 4 3 5 2 7 9 ?
-    //   ? 1 6 5 9 2 8 7 3 4 4
-    //   ? 2 3 9 1 5 6 4 8 7 ?
-    //     3 5 ? ? 3 3 3 ? 2  ");
+    let p = towers::maker::make_puzzle(3);
 
-    // let p = towers::puzzle::Puzzle::from_string(" \
-    //     ? ? ? 4 2 ? 3 ? 4
-    //   4 4 2 7 6 8 1 3 9 5 ?
-    //   4 3 ? ? ? ? ? ? 5 ? ?
-    //   ? 9 5 4 3 1 7 8 6 2 4
-    //   ? 6 ? ? ? ? ? ? ? ? 6
-    //   ? 5 ? ? 2 ? 9 6 ? ? 4
-    //   3 1 7 5 3 2 4 9 6 8 ?
-    //   2 8 1 6 4 3 2 5 7 9 ?
-    //   ? 2 6 9 5 1 8 7 3 4 4
-    //   ? 7 3 1 9 4 6 2 8 5 ?
-    //     3 5 ? ? 3 3 3 ? 2  ");
-
-    // let p = towers::puzzle::Puzzle::from_string(" \
-    //     ? ? ? 4 2 ? 3 ? 4
-    //   4 4 2 ? ? ? ? ? ? ? ?
-    //   4 3 ? ? ? ? ? ? 5 ? ?
-    //   ? 9 5 4 ? ? ? ? ? ? 4
-    //   ? 6 ? ? ? ? ? ? ? ? 6
-    //   ? 5 ? ? 2 ? 9 6 ? ? 4
-    //   3 2 7 5 3 1 4 9 6 8 ?
-    //   2 8 1 6 4 3 2 5 7 9 ?
-    //   ? 1 6 9 5 2 8 7 3 4 4
-    //   ? 7 3 1 9 4 6 2 8 5 ?
-    //     3 5 ? ? 3 3 3 ? 2  ");
-
-//       ?         ?         ?         4         2         ?         3         ?         4
-// 4 ___4_____ _2_______ ______7__ _____6___ 1________ _______8_ __3______ ________9 ____5____ ?
-// 4 __3______ ______7__ _______8_ ___4_____ ________9 _2_______ 1________ ____5____ _____6___ ?
-// ? ________9 ____5____ ___4_____ ______7__ _2_______ __3______ _______8_ _____6___ 1________ 4
-// ? ______7__ ________9 1________ _______8_ _____6___ ___4_____ ____5____ __3______ _2_______ 6
-// ? 1________ _______8_ ____5____ _2_______ ______7__ ________9 _____6___ ___4_____ __3______ 4
-// 3 _____6___ ___4_____ __3______ 1________ ____5____ ______7__ ________9 _2_______ _______8_ ?
-// 2 _______8_ _____6___ _2_______ ____5____ __3______ 1________ ___4_____ ______7__ ________9 ?
-// ? _2_______ __3______ _____6___ ________9 _______8_ ____5____ ______7__ 1________ ___4_____ 4
-// ? ____5____ 1________ ________9 __3______ ___4_____ _____6___ _2_______ _______8_ ______7__ ?
-//       3         5         ?         ?         3         3         3         ?         2
-
-    let mut s = towers::solver::Solver::new(&p);
-    s.full_solve(100);
+    let mut s = towers::solver::Solver::new(p);
+    println!("START!");
     println!("{}", s.to_detailed_string());
+    println!("");
+
+    let solutions = s.full_solve(0);
+    towers::maker::make_puzzle(3);
+    println!("{}", s.to_detailed_string());
+    println!("Sample Solutions: ");
+    for sol in solutions {
+        println!("{}", sol.to_detailed_string());
+    }
 }

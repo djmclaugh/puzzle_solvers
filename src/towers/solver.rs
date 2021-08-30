@@ -1,4 +1,7 @@
 use super::puzzle::Puzzle;
+use super::puzzle::row;
+use super::puzzle::column;
+use super::puzzle::calculate_view;
 use std::collections::HashSet;
 mod row_solver;
 mod latin_solver;
@@ -22,10 +25,12 @@ enum Direction {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Status {
-    // One or multiple solutions exist
-    Solved,
     // No solution exists
     Unsolvable,
+    // No solution exists
+    UniqueSolution,
+    // No solution exists
+    MultipleSolutions,
     // Don't know if solvable or not yet
     InProgress,
 }
@@ -49,8 +54,8 @@ fn possibilities_to_detailed_string(p: &HashSet<u8>, size: usize) -> String {
     return result;
 }
 
-pub struct Solver<'a> {
-    puzzle: &'a Puzzle,
+pub struct Solver {
+    puzzle: Puzzle,
     grid: Vec<Vec<HashSet<u8>>>,
     solved_count: usize,
     recently_solved: Vec<Coordinate>,
@@ -60,14 +65,6 @@ pub struct Solver<'a> {
     recently_unique_in_column: Vec<(usize, u8)>,
     change_flag: bool,
     status: Status,
-}
-
-pub fn row(grid: &Vec<Vec<HashSet<u8>>>, index: usize) -> Vec<&HashSet<u8>> {
-    return grid[index].iter().map(|x| x).collect();
-}
-
-pub fn column(grid: &Vec<Vec<HashSet<u8>>>, index: usize) -> Vec<&HashSet<u8>> {
-    return grid.iter().map(|x| &x[index]).collect();
 }
 
 fn get_vec<'a>(grid: &'a Vec<Vec<HashSet<u8>>>, d: &Direction, i: usize) -> Vec<&'a HashSet<u8>> {
@@ -82,21 +79,6 @@ fn get_vec<'a>(grid: &'a Vec<Vec<HashSet<u8>>>, d: &Direction, i: usize) -> Vec<
     }
 
     return vec;
-}
-
-fn calculate_view(row: &Vec<u8>) -> u8 {
-    if row.len() == 0 {
-        return 0;
-    }
-    let mut max_so_far = row[0];
-    let mut seen_so_far = 1;
-    for i in 1..row.len() {
-        if row[i] > max_so_far {
-            max_so_far = row[i];
-            seen_so_far += 1;
-        }
-    }
-    return seen_so_far;
 }
 
 // i1 = the row/column chosen
@@ -120,7 +102,7 @@ fn get_coordinate<'a>(d: &Direction, n: usize, i1: usize, i2: usize) -> Coordina
     return c;
 }
 
-impl<'a> Solver<'a> {
+impl Solver {
     pub fn to_detailed_string(&self) -> String {
       let n = self.puzzle.size;
       let mut rows: Vec<String> = Vec::new();
@@ -156,7 +138,7 @@ impl<'a> Solver<'a> {
       return rows.join("\n");
     }
 
-    pub fn new(p: &Puzzle) -> Solver {
+    pub fn new(p: Puzzle) -> Solver {
         let n = p.size;
         let mut grid: Vec<Vec<HashSet<u8>>> = Vec::new();
         let mut recently_solved: Vec<Coordinate> = Vec::new();
@@ -223,7 +205,7 @@ impl<'a> Solver<'a> {
 
     fn clone (&self) -> Solver {
         return Solver {
-            puzzle: self.puzzle,
+            puzzle: self.puzzle.clone(),
             grid: self.grid.clone(),
             solved_count: self.solved_count,
             recently_solved: self.recently_solved.clone(),
@@ -259,7 +241,7 @@ impl<'a> Solver<'a> {
         }
         if has_removed && self.solved_count == self.puzzle.size * self.puzzle.size {
             if self.satisfies_contraints() {
-                self.status = Status::Solved;
+                self.status = Status::UniqueSolution;
             } else {
                 self.status = Status::Unsolvable;
             }
@@ -319,7 +301,7 @@ impl<'a> Solver<'a> {
                     continue;
                 }
                 let view = views[index].unwrap();
-                let values: Vec<u8> = get_vec(&self.grid, &d, index).iter().map(|x| *x.iter().next().unwrap()).collect();
+                let values: Vec<&u8> = get_vec(&self.grid, &d, index).iter().map(|x| x.iter().next().unwrap()).collect();
                 if calculate_view(&values) != view {
                     return false;
                 }
@@ -343,30 +325,30 @@ impl<'a> Solver<'a> {
         }
     }
 
-    fn view_solve_with_grid(& mut self, grid: &Vec<Vec<HashSet<u8>>>) -> bool {
-        for i in 0..self.puzzle.size {
-            for d in [Direction::NORTH, Direction::EAST, Direction::SOUTH, Direction::WEST] {
-                let still_potentially_solvable = self.analyze_view_with_grid(d, i, grid);
-                if !still_potentially_solvable {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
+    // fn view_solve_with_grid(& mut self, grid: &Vec<Vec<HashSet<u8>>>) -> bool {
+    //     for i in 0..self.puzzle.size {
+    //         for d in [Direction::NORTH, Direction::EAST, Direction::SOUTH, Direction::WEST] {
+    //             let still_potentially_solvable = self.analyze_view_with_grid(d, i, grid);
+    //             if !still_potentially_solvable {
+    //                 return false;
+    //             }
+    //         }
+    //     }
+    //     return true;
+    // }
 
-    fn brute_force_view_solve(& mut self) {
-        for i in 0..self.puzzle.size {
-            // println!("Brute force: {} of {}", i + 1, self.puzzle.size);
-            for d in [Direction::NORTH, Direction::EAST, Direction::SOUTH, Direction::WEST] {
-                let still_potentially_solvable = self.brute_force_view(d, i);
-                if !still_potentially_solvable {
-                    self.status = Status::Unsolvable;
-                    return;
-                }
-            }
-        }
-    }
+    // fn brute_force_view_solve(& mut self) {
+    //     for i in 0..self.puzzle.size {
+    //         // println!("Brute force: {} of {}", i + 1, self.puzzle.size);
+    //         for d in [Direction::NORTH, Direction::EAST, Direction::SOUTH, Direction::WEST] {
+    //             let still_potentially_solvable = self.brute_force_view(d, i);
+    //             if !still_potentially_solvable {
+    //                 self.status = Status::Unsolvable;
+    //                 return;
+    //             }
+    //         }
+    //     }
+    // }
 
     fn analyze_view(& mut self, from: Direction, index: usize) -> bool {
         let n = self.puzzle.size;
@@ -390,43 +372,43 @@ impl<'a> Solver<'a> {
         return still_potentially_solvable;
     }
 
-    fn analyze_view_with_grid(& mut self, from: Direction, index: usize, grid: &Vec<Vec<HashSet<u8>>>) -> bool {
-        let view:Option<u8> = match from {
-            Direction::NORTH => self.puzzle.north[index],
-            Direction::EAST => self.puzzle.east[index],
-            Direction::SOUTH => self.puzzle.south[index],
-            Direction::WEST => self.puzzle.west[index],
-        };
-        if view.is_none() {
-            return true;
-        }
+    // fn analyze_view_with_grid(& mut self, from: Direction, index: usize, grid: &Vec<Vec<HashSet<u8>>>) -> bool {
+    //     let view:Option<u8> = match from {
+    //         Direction::NORTH => self.puzzle.north[index],
+    //         Direction::EAST => self.puzzle.east[index],
+    //         Direction::SOUTH => self.puzzle.south[index],
+    //         Direction::WEST => self.puzzle.west[index],
+    //     };
+    //     if view.is_none() {
+    //         return true;
+    //     }
+    //
+    //     let (still_potentially_solvable, _to_remove) = row_solver::solve(view.unwrap(), &get_vec(grid, &from, index));
+    //
+    //     return still_potentially_solvable;
+    // }
 
-        let (still_potentially_solvable, _to_remove) = row_solver::solve(view.unwrap(), &get_vec(grid, &from, index));
-
-        return still_potentially_solvable;
-    }
-
-    fn brute_force_view(& mut self, from: Direction, index: usize) -> bool {
-        let n = self.puzzle.size;
-        let view: Option<u8> = match from {
-            Direction::NORTH => self.puzzle.north[index],
-            Direction::EAST => self.puzzle.east[index],
-            Direction::SOUTH => self.puzzle.south[index],
-            Direction::WEST => self.puzzle.west[index],
-        };
-        if view.is_none() {
-            return true;
-        }
-
-        let (still_potentially_solvable, to_remove) = row_solver::trial_solve(view.unwrap(), &get_vec(&self.grid, &from, index));
-
-        for i in to_remove {
-            let c = get_coordinate(&from, n, index, i.0);
-            self.remove(&c, &i.1);
-        }
-
-        return still_potentially_solvable;
-    }
+    // fn brute_force_view(& mut self, from: Direction, index: usize) -> bool {
+    //     let n = self.puzzle.size;
+    //     let view: Option<u8> = match from {
+    //         Direction::NORTH => self.puzzle.north[index],
+    //         Direction::EAST => self.puzzle.east[index],
+    //         Direction::SOUTH => self.puzzle.south[index],
+    //         Direction::WEST => self.puzzle.west[index],
+    //     };
+    //     if view.is_none() {
+    //         return true;
+    //     }
+    //
+    //     let (still_potentially_solvable, to_remove) = row_solver::trial_solve(view.unwrap(), &get_vec(&self.grid, &from, index));
+    //
+    //     for i in to_remove {
+    //         let c = get_coordinate(&from, n, index, i.0);
+    //         self.remove(&c, &i.1);
+    //     }
+    //
+    //     return still_potentially_solvable;
+    // }
 
     // Solve the puzzle using all non-recursive ways we know of.
     pub fn non_recursive_solve(&mut self) {
@@ -438,74 +420,46 @@ impl<'a> Solver<'a> {
             self.change_flag = false;
             self.simple_solve();
             self.view_solve();
-
-            // I don't think grouping solve is exponential, but I haven't proven it yet, so I'm going
-            // to treat it as exponential and only use it if I can't make progress otherwise.
-            if !self.change_flag && self.status == Status::InProgress {
-                self.grouping_solve();
-            }
-
-            // I don't think graph solve is exponential, but I haven't proven it yet, so I'm going to
-            // treat it as exponential and only use it if I can't make progress otherwise.
-            // if !self.change_flag && self.status == Status::InProgress {
-            //     let now = Instant::now();
-            //     let maximal_graphs = self.graph_solve();
-            //     println!("Graph solve: {:>8}", now.elapsed().as_micros());
-            //     if !self.change_flag {
-            //         let now = Instant::now();
-            //         for (class, grid) in maximal_graphs {
-            //             if !self.view_solve_with_grid(&grid) {
-            //                 for p in class {
-            //                     self.remove(&Coordinate(p.0 as usize, p.1 as usize), &p.2);
-            //                 }
-            //             }
-            //         }
-            //         println!("Cross solve: {:>8}", now.elapsed().as_micros());
-            //     }
-            // }
-
-            // Since brute force solving the view is potentially exponential, only do it if we
-            // can't make progress with a more efficient method.
-            // if !self.change_flag && self.status == Status::InProgress {
-            //     let now = Instant::now();
-            //     self.brute_force_view_solve();
-            //     println!("Force views: {:>8}", now.elapsed().as_micros());
-            // }
-
-            // Uncomment to see the progress of the solve at each step.
-            // println!("{}\n", self.to_detailed_string());
         }
     }
 
-    pub fn full_solve(&mut self, depth: u8) {
+    pub fn full_solve(&mut self, depth: u8) -> Vec<Solver> {
         let start = Instant::now();
+        let mut solutions: Vec<Solver> = Vec::new();
 
         self.change_flag = true;
         while self.change_flag {
             self.non_recursive_solve();
             self.change_flag = false;
             if self.status == Status::InProgress {
-                self.depth_solve(depth);
+                solutions = self.depth_solve(depth);
+            } else {
+                solutions = Vec::new();
+                solutions.push(self.clone());
             }
         }
 
+        let duration = start.elapsed();
+        let indent = " ".repeat((8 * depth) as usize);
+        println!("\n{}Done! Total Time: {}.{:>6}", indent, duration.as_secs(), duration.as_micros() % 1000000);
+        println!("{}Status: {:?}", indent, self.status);
+        println!("{}Depth: {:?}", indent, depth);
 
-
-        if depth >= 1 {
-            let duration = start.elapsed();
-            println!("\nDone! Total Time: {}.{:>6}", duration.as_secs(), duration.as_micros() % 1000000);
-            println!("Status: {:?}", self.status);
-            println!("Depth: {:?}", depth);
-        }
+        return solutions;
     }
 
     fn initial_view_solve(&mut self) {
         let n = self.puzzle.size;
 
-        let north_hints = self.puzzle.north.iter()
-                .enumerate()
-                .filter(|(_column, view)| view.is_some())
-                .map(|(column, view)| (column, view.unwrap()));
+        let mut north_hints = Vec::new();
+        for i in 0..n {
+            match self.puzzle.north[i] {
+                Some(x) => { north_hints.push((i, x)); },
+                None => {
+                    // Do nothing
+                }
+            }
+        }
         for (column, view) in north_hints {
             if view == 1 {
                 self.set(&Coordinate(0, column), &((n-1) as u8));
@@ -518,10 +472,15 @@ impl<'a> Solver<'a> {
             }
         }
 
-        let east_hints = self.puzzle.east.iter()
-                .enumerate()
-                .filter(|(_row, view)| view.is_some())
-                .map(|(row, view)| (row, view.unwrap()));
+        let mut east_hints = Vec::new();
+        for i in 0..n {
+            match self.puzzle.east[i] {
+                Some(x) => { east_hints.push((i, x)); },
+                None => {
+                    // Do nothing
+                }
+            }
+        }
         for (row, view) in east_hints {
             if view == 1 {
                 self.set(&Coordinate(row, n - 1), &((n-1) as u8));
@@ -535,10 +494,15 @@ impl<'a> Solver<'a> {
             }
         }
 
-        let south_hints = self.puzzle.south.iter()
-                .enumerate()
-                .filter(|(_column, view)| view.is_some())
-                .map(|(column, view)| (column, view.unwrap()));
+        let mut south_hints = Vec::new();
+        for i in 0..n {
+            match self.puzzle.south[i] {
+                Some(x) => { south_hints.push((i, x)); },
+                None => {
+                    // Do nothing
+                }
+            }
+        }
         for (column, view) in south_hints {
             if view == 1 {
                 self.set(&Coordinate(n - 1, column), &((n-1) as u8));
@@ -552,10 +516,15 @@ impl<'a> Solver<'a> {
             }
         }
 
-        let west_hints = self.puzzle.west.iter()
-                .enumerate()
-                .filter(|(_row, view)| view.is_some())
-                .map(|(row, view)| (row, view.unwrap()));
+        let mut west_hints = Vec::new();
+        for i in 0..n {
+            match self.puzzle.west[i] {
+                Some(x) => { west_hints.push((i, x)); },
+                None => {
+                    // Do nothing
+                }
+            }
+        }
         for (row, view) in west_hints {
             if view == 1 {
                 self.set(&Coordinate(row, 0), &((n-1) as u8));

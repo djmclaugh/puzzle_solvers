@@ -14,6 +14,29 @@ fn string_to_cell(view: &str) -> Option<u8> {
     }
 }
 
+pub fn row<T>(grid: &Vec<Vec<T>>, index: usize) -> Vec<&T> {
+    return grid[index].iter().map(|x| x).collect();
+}
+
+pub fn column<T>(grid: &Vec<Vec<T>>, index: usize) -> Vec<&T> {
+    return grid.iter().map(|x| &x[index]).collect();
+}
+
+pub fn calculate_view(row: &Vec<&u8>) -> u8 {
+    if row.len() == 0 {
+        return 0;
+    }
+    let mut max_so_far = row[0];
+    let mut seen_so_far = 1;
+    for i in 1..row.len() {
+        if row[i] > max_so_far {
+            max_so_far = row[i];
+            seen_so_far += 1;
+        }
+    }
+    return seen_so_far;
+}
+
 // fn possibilities_to_string(p: &HashSet<u8>) -> String {
 //     if p.len() == 1 {
 //       return (p.iter().next().unwrap() + 1).to_string();
@@ -45,6 +68,46 @@ pub struct Puzzle {
 }
 
 impl Puzzle {
+    pub fn clone(&self) -> Puzzle {
+        return Puzzle {
+            size: self.north.len(),
+            north: self.north.clone(),
+            east: self.east.clone(),
+            south: self.south.clone(),
+            west: self.west.clone(),
+            grid: self.grid.clone(),
+        }
+    }
+
+    pub fn from_grid(g: &Vec<Vec<u8>>) -> Puzzle {
+        let n = g.len();
+        let mut grid = Vec::new();
+        for column in g {
+            grid.push(column.iter().map(|cell| Some(*cell)).collect());
+        }
+
+        let mut north = Vec::new();
+        let mut east = Vec::new();
+        let mut south = Vec::new();
+        let mut west = Vec::new();
+        for i in 0..n {
+            north.push(Some(calculate_view(&column(g, i))));
+            let mut col = column(g, i);
+            col.reverse();
+            south.push(Some(calculate_view(&col)));
+
+            west.push(Some(calculate_view(&row(g, i))));
+            let mut r = row(g, i);
+            r.reverse();
+            east.push(Some(calculate_view(&r)));
+        }
+
+
+        return Puzzle {
+            size: grid.len(), north, east, south, west, grid,
+        };
+    }
+
     pub fn from_string(s: &str) -> Puzzle {
         let mut grid = Vec::new();
 
@@ -80,4 +143,107 @@ impl Puzzle {
             size: north.len(), north, east, south, west, grid,
         };
     }
+
+    pub fn number_of_hints(&self) -> usize {
+        let mut total = 0;
+
+        for column in &self.grid {
+            for cell in column {
+                if cell.is_some() {
+                    total += 1;
+                }
+            }
+        }
+
+        for hint in &self.north {
+            if hint.is_some() {
+                total += 1;
+            }
+        }
+        for hint in &self.east {
+            if hint.is_some() {
+                total += 1;
+            }
+        }
+        for hint in &self.south {
+            if hint.is_some() {
+                total += 1;
+            }
+        }
+        for hint in &self.west {
+            if hint.is_some() {
+                total += 1;
+            }
+        }
+
+        return total;
+    }
+
+    pub fn with_hints_removed(&self, hints_to_remove: Vec<bool>) -> Puzzle {
+        let n = self.grid.len();
+        let mut total = 0;
+
+        let mut grid = self.grid.clone();
+        for i in 0..n {
+            for j in 0..n {
+                if grid[i][j].is_some() {
+                    if hints_to_remove[total] {
+                        grid[i][j] = None;
+                    }
+                    total += 1;
+                }
+            }
+        }
+
+        let mut north = self.north.clone();
+        for i in 0..n {
+            if north[i].is_some() {
+                if hints_to_remove[total] {
+                    north[i] = None;
+                }
+                total += 1;
+            }
+        }
+        let mut east = self.east.clone();
+        for i in 0..n {
+            if east[i].is_some() {
+                if hints_to_remove[total] {
+                    east[i] = None;
+                }
+                total += 1;
+            }
+        }
+        let mut south = self.south.clone();
+        for i in 0..n {
+            if south[i].is_some() {
+                if hints_to_remove[total] {
+                    south[i] = None;
+                }
+                total += 1;
+            }
+        }
+        let mut west = self.west.clone();
+        for i in 0..n {
+            if west[i].is_some() {
+                if hints_to_remove[total] {
+                    west[i] = None;
+                }
+                total += 1;
+            }
+        }
+
+        return Puzzle {
+            size: north.len(), north, east, south, west, grid,
+        };
+    }
+
+
+
+
+
+
+
+
+
+
 }
