@@ -1,6 +1,7 @@
 mod towers;
 mod latin;
 mod perm;
+use std::io::Write;
 
 fn main() {
     // let square = latin::square::Square::from_string(" \
@@ -9,14 +10,6 @@ fn main() {
     //    3 1 2");
     //
     // println!("{}", square.to_string());
-
-
-    println!("main start");
-    let iter = latin::square::SquareIter::new(6);
-    for test in iter {
-       println!("{}\n", test.to_string());
-    }
-
 
     // 4*4 unreasonable
     // let p = towers::puzzle::Puzzle::from_string(" \
@@ -183,18 +176,23 @@ fn main() {
     //   ? ? ? ? ? ? 6 ? ? ? ?
     //     3 5 ? ? 3 3 3 ? 2  ");
 
-    let p = towers::maker::make_puzzle(3);
 
-    let mut s = towers::solver::Solver::new(p);
-    println!("START!");
-    println!("{}", s.to_detailed_string());
-    println!("");
-
-    let solutions = s.full_solve(0);
-    towers::maker::make_puzzle(3);
-    println!("{}", s.to_detailed_string());
-    println!("Sample Solutions: ");
-    for sol in solutions {
-        println!("{}", sol.to_detailed_string());
+    let mut file = std::fs::File::create("towers_8.txt").expect("create failed");
+    for _i in 0..100 {
+        let p = towers::maker::make_puzzle(8);
+        file.write_all("Difficulty: ".as_bytes()).expect("write failed");
+        file.write_all(p.difficulty.to_string().as_bytes()).expect("write failed");
+        file.write_all("\n".as_bytes()).expect("write failed");
+        file.write_all(p.to_string().as_bytes()).expect("write failed");
+        file.write_all("\n-----\n".as_bytes()).expect("write failed");
     }
+    println!("data written to file");
+
+    // let mut s = towers::solver::Solver::new(p);
+    // println!("START!");
+    // println!("{}", s.to_detailed_string());
+    // println!("");
+    //
+    // s.full_solve(0, true);
+    // println!("{}", s.to_detailed_string())
 }

@@ -9,7 +9,7 @@ pub struct Triple (usize, usize, u8);
 
 // Solver methods based on making a guess and seeing if we end up with a contradiction.
 impl Solver {
-    pub fn depth_solve(& mut self, depth: u8) -> Vec<Solver> {
+    pub fn depth_solve(& mut self, depth: u8, should_log: bool) -> Vec<Solver> {
         let n = self.puzzle.size;
         let mut to_remove: Option<Triple> = None;
         let mut can_skip: HashSet<Triple> = HashSet::new();
@@ -28,7 +28,10 @@ impl Solver {
                     }
                     let mut copy = self.clone();
                     copy.set(&Coordinate(i, j), v);
-                    let mut copy_solutions = copy.full_solve(depth + 1);
+                    let mut copy_solutions = copy.full_solve(depth + 1, should_log);
+                    if copy.depth_needed > self.depth_needed {
+                        self.depth_needed = copy.depth_needed;
+                    }
                     if copy.status == Status::Unsolvable {
                         to_remove = Some(Triple(i, j, *v));
                         break;

@@ -65,6 +65,7 @@ pub struct Solver {
     recently_unique_in_column: Vec<(usize, u8)>,
     change_flag: bool,
     status: Status,
+    pub depth_needed: u8,
 }
 
 fn get_vec<'a>(grid: &'a Vec<Vec<HashSet<u8>>>, d: &Direction, i: usize) -> Vec<&'a HashSet<u8>> {
@@ -200,6 +201,7 @@ impl Solver {
             recently_unique_in_column,
             change_flag: false,
             status: Status::InProgress,
+            depth_needed: 0,
         }
     }
 
@@ -215,6 +217,7 @@ impl Solver {
             recently_unique_in_column: self.recently_unique_in_column.clone(),
             change_flag: self.change_flag,
             status: self.status,
+            depth_needed: self.depth_needed,
         }
     }
 
@@ -423,8 +426,9 @@ impl Solver {
         }
     }
 
-    pub fn full_solve(&mut self, depth: u8) -> Vec<Solver> {
-        let start = Instant::now();
+    pub fn full_solve(&mut self, depth: u8, should_log: bool) -> Vec<Solver> {
+        self.depth_needed = depth;
+        // let start = Instant::now();
         let mut solutions: Vec<Solver> = Vec::new();
 
         self.change_flag = true;
@@ -432,18 +436,20 @@ impl Solver {
             self.non_recursive_solve();
             self.change_flag = false;
             if self.status == Status::InProgress {
-                solutions = self.depth_solve(depth);
+                solutions = self.depth_solve(depth, should_log);
             } else {
                 solutions = Vec::new();
                 solutions.push(self.clone());
             }
         }
 
-        let duration = start.elapsed();
-        let indent = " ".repeat((8 * depth) as usize);
-        println!("\n{}Done! Total Time: {}.{:>6}", indent, duration.as_secs(), duration.as_micros() % 1000000);
-        println!("{}Status: {:?}", indent, self.status);
-        println!("{}Depth: {:?}", indent, depth);
+        // let duration = start.elapsed();
+        // let indent = " ".repeat((8 * depth) as usize);
+        // if should_log {
+            // println!("\n{}Done! Total Time: {}.{:>6}", indent, duration.as_secs(), duration.as_micros() % 1000000);
+            // println!("{}Status: {:?}", indent, self.status);
+            // println!("{}Depth: {:?}", indent, depth);
+        // }
 
         return solutions;
     }
