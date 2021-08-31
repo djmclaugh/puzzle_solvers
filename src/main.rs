@@ -177,9 +177,10 @@ fn main() {
     //     3 5 ? ? 3 3 3 ? 2  ");
 
 
-    let mut file = std::fs::File::create("towers_8.txt").expect("create failed");
-    for _i in 0..100 {
-        let p = towers::maker::make_puzzle(8);
+    let mut file = std::fs::File::create("towers_9.txt").expect("create failed");
+    for i in 0..100 {
+        println!("{}", i);
+        let p = towers::maker::make_puzzle(9);
         file.write_all("Difficulty: ".as_bytes()).expect("write failed");
         file.write_all(p.difficulty.to_string().as_bytes()).expect("write failed");
         file.write_all("\n".as_bytes()).expect("write failed");
