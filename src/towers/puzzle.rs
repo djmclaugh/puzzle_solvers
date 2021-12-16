@@ -300,14 +300,4 @@ impl Puzzle {
             size: north.len(), difficulty, north, east, south, west, grid,
         };
     }
-
-
-
-
-
-
-
-
-
-
 }
