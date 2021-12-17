@@ -51,15 +51,9 @@ impl Puzzle {
         }
     }
 
-    pub fn from_grid(g: &Vec<Vec<u8>>, difficulty: u8) -> Puzzle {
-        let n = g.len();
-        let mut grid = Vec::new();
-        for column in g {
-            grid.push(column.iter().map(|cell| Some(*cell)).collect());
-        }
-
+    pub fn from_grid(g: &Vec<Vec<Option<u8>>>, difficulty: u8) -> Puzzle {
         return Puzzle {
-            size: grid.len(), difficulty, grid,
+            size: g.len(), difficulty, grid: g.clone(),
         };
     }
 
