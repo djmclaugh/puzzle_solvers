@@ -456,6 +456,7 @@ impl Solver {
             if self.status != Status::InProgress {
                 return;
             }
+            self.recently_affected_corners.remove(&corner);
             // First check that there are no "on" edges going through this node and that there are
             // exactly two unknown edges.
             let mut unknown_count = 0;
@@ -640,7 +641,7 @@ impl Solver {
             }
         }
         // If a 3 is next to a three, then it...
-        
+
         // Look at corners
         let top_left = Coordinate(0, 0);
         match self.puzzle.grid[0][0] {
