@@ -1,6 +1,5 @@
 use super::puzzle::Puzzle;
 use super::solver::Solver;
-use super::solver::Status;
 use super::solver::coordinate::Coordinate;
 
 use rand::seq::SliceRandom;

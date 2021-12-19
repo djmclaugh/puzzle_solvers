@@ -1,5 +1,5 @@
 fn char_to_cell(c: char) -> Option<u8> {
-    if c == '.' {
+    if c == '.' || c == '·' {
       return None;
     } else {
       return Some(c.to_digit(10).unwrap() as u8);
