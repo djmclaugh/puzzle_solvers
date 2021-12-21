@@ -54,7 +54,6 @@ pub fn make_puzzle(size: usize) -> Puzzle {
             None => {
                 println!("{}", solver.to_string());
                 println!("{:?}", last_hint);
-                panic!();
                 last_hint = (next_coordinate.0, next_coordinate.1, 4);
             },
         }

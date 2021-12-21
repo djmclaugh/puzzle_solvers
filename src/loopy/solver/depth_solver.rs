@@ -19,25 +19,37 @@ impl Solver {
                     }
                     if copy.status == Status::Unsolvable {
                         self.set(&self.h_edges[i][j].clone(), true);
-                        return solutions;
+                        self.non_recursive_solve();
+                        if self.status == Status::Unsolvable {
+                            return solutions;
+                        } else if self.status == Status::UniqueSolution {
+                            solutions.push(self.clone());
+                            return solutions;
+                        }
                     } else if solutions.len() > 1 {
                         self.status = Status::MultipleSolutions;
                         return solutions;
-                    }
-
-                    let mut copy = self.clone();
-                    copy.set(&self.h_edges[i][j], true);
-                    let mut copy_solutions = copy.full_solve(depth + 1, should_log);
-                    solutions.append(&mut copy_solutions);
-                    if copy.depth_needed > self.depth_needed {
-                        self.depth_needed = copy.depth_needed;
-                    }
-                    if copy.status == Status::Unsolvable {
-                        self.set(&self.h_edges[i][j].clone(), false);
-                        return solutions;
-                    } else if solutions.len() > 1 {
-                        self.status = Status::MultipleSolutions;
-                        return solutions;
+                    } else {
+                        let mut copy = self.clone();
+                        copy.set(&self.h_edges[i][j], true);
+                        let mut copy_solutions = copy.full_solve(depth + 1, should_log);
+                        solutions.append(&mut copy_solutions);
+                        if copy.depth_needed > self.depth_needed {
+                            self.depth_needed = copy.depth_needed;
+                        }
+                        if copy.status == Status::Unsolvable {
+                            self.set(&self.h_edges[i][j].clone(), false);
+                            self.non_recursive_solve();
+                            if self.status == Status::Unsolvable {
+                                return solutions;
+                            } else if self.status == Status::UniqueSolution {
+                                solutions.push(self.clone());
+                                return solutions;
+                            }
+                        } else if solutions.len() > 1 {
+                            self.status = Status::MultipleSolutions;
+                            return solutions;
+                        }
                     }
                 }
 
@@ -51,32 +63,40 @@ impl Solver {
                     }
                     if copy.status == Status::Unsolvable {
                         self.set(&self.v_edges[j][i].clone(), true);
-                        return solutions;
+                        self.non_recursive_solve();
+                        if self.status == Status::Unsolvable {
+                            return solutions;
+                        } else if self.status == Status::UniqueSolution {
+                            solutions.push(self.clone());
+                            return solutions;
+                        }
                     } else if solutions.len() > 1 {
                         self.status = Status::MultipleSolutions;
                         return solutions;
-                    }
-
-                    let mut copy = self.clone();
-                    copy.set(&self.v_edges[j][i], true);
-                    let mut copy_solutions = copy.full_solve(depth + 1, should_log);
-                    solutions.append(&mut copy_solutions);
-                    if copy.depth_needed > self.depth_needed {
-                        self.depth_needed = copy.depth_needed;
-                    }
-                    if copy.status == Status::Unsolvable {
-                        self.set(&self.v_edges[j][i].clone(), false);
-                        return solutions;
-                    } else if solutions.len() > 1 {
-                        self.status = Status::MultipleSolutions;
-                        return solutions;
+                    } else {
+                        let mut copy = self.clone();
+                        copy.set(&self.v_edges[j][i], true);
+                        let mut copy_solutions = copy.full_solve(depth + 1, should_log);
+                        solutions.append(&mut copy_solutions);
+                        if copy.depth_needed > self.depth_needed {
+                            self.depth_needed = copy.depth_needed;
+                        }
+                        if copy.status == Status::Unsolvable {
+                            self.set(&self.v_edges[j][i].clone(), false);
+                            self.non_recursive_solve();
+                            if self.status == Status::Unsolvable {
+                                return solutions;
+                            } else if self.status == Status::UniqueSolution {
+                                solutions.push(self.clone());
+                                return solutions;
+                            }
+                        } else if solutions.len() > 1 {
+                            self.status = Status::MultipleSolutions;
+                            return solutions;
+                        }
                     }
                 }
             }
-        }
-
-        if solutions.len() == 1 {
-            self.status = Status::UniqueSolution;
         }
 
         return solutions;
