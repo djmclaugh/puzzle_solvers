@@ -43,7 +43,7 @@ pub struct Solver {
     recently_affected_cells: HashSet<Coordinate>,
     recently_affected_nodes: HashSet<Coordinate>,
     recently_affected_corners: HashSet<Coordinate>,
-    recently_extended_paths: HashSet<Coordinate>,
+    paths_endpoints_to_check: HashSet<(Coordinate, Coordinate)>,
     paths: PathTracker,
     change_flag: bool,
     can_be_single_cell: bool,
@@ -115,7 +115,7 @@ impl Solver {
             recently_affected_cells: HashSet::new(),
             recently_affected_nodes: HashSet::new(),
             recently_affected_corners: HashSet::new(),
-            recently_extended_paths: HashSet::new(),
+            paths_endpoints_to_check: HashSet::new(),
             depth_needed: 0,
         }
     }
@@ -296,9 +296,11 @@ impl Solver {
             if actual_edge.is_off {
                 self.status = Status::Unsolvable;
             }
-            self.paths.add_edge(&nodes.0, &nodes.1);
-            self.recently_extended_paths.insert(nodes.0);
-            self.recently_extended_paths.insert(nodes.1);
+            let endpoints = self.paths.add_edge(&nodes.0, &nodes.1);
+            match endpoints {
+                Some(x) => { self.paths_endpoints_to_check.insert(x); },
+                None => {},
+            };
             has_changed = true;
         }
         if !on && !actual_edge.is_off {
@@ -335,27 +337,39 @@ impl Solver {
     }
 
     fn apply_local_single_loop_contraints(& mut self) {
-        let paths: Vec<Coordinate> = self.recently_extended_paths.iter().cloned().collect();
-        for node in paths {
+        if self.paths.num_paths() <= 1 {
+            // Can't apply this contriant yet so don't consume the endpoints yet.
+            return;
+        }
+        let endpoints_list: Vec<(Coordinate, Coordinate)> = self.paths_endpoints_to_check.iter().cloned().collect();
+        for endpoints in endpoints_list {
             if self.status != Status::InProgress {
                 return;
             }
-            self.recently_extended_paths.remove(&node);
-            let edges = self.edges_from_node(&node);
-            for e in edges {
-                match e {
-                    Some(x) => {
-                        if !x.is_on && !x.is_off {
-                            let nodes = self.nodes_from_edge(&x);
-                            if self.paths.num_paths() > 1 && self.paths.would_create_loop(&nodes.0, &nodes.1) {
-                                self.set(&x, false);
-                            }
-                        }
-                    },
-                    None => {
-                        // Do nothing
-                    },
+            // If the endpoints of a path is an edge, then the path must be that edge or that edge
+            // must off (otherwise it would close the loop and we would have more than two loops)
+            let edge: Edge;
+            if endpoints.0.0 == endpoints.1.0 {
+                if endpoints.0.1 + 1 == endpoints.1.1 {
+                    edge = self.edge_from_node(&endpoints.0, &Direction::RIGHT).unwrap();
+                } else if endpoints.0.1 == endpoints.1.1 + 1 {
+                    edge = self.edge_from_node(&endpoints.0, &Direction::LEFT).unwrap();
+                } else {
+                    continue;
                 }
+            } else if endpoints.0.1 == endpoints.1.1 {
+                if endpoints.0.0 + 1 == endpoints.1.0 {
+                    edge = self.edge_from_node(&endpoints.0, &Direction::DOWN).unwrap();
+                } else if endpoints.0.0 == endpoints.1.0 + 1 {
+                    edge = self.edge_from_node(&endpoints.0, &Direction::UP).unwrap();
+                } else {
+                    continue;
+                }
+            } else {
+                continue;
+            }
+            if !edge.is_on && !edge.is_off {
+                self.set(&edge, false);
             }
         }
     }
@@ -911,7 +925,9 @@ impl Solver {
         self.change_flag = true;
         while self.change_flag && self.status == Status::InProgress {
             self.change_flag = false;
+            // println!("Before single loop arguments:\n{}", self.to_string());
             self.apply_local_single_loop_contraints();
+            // println!("After single loop arguments:\n{}\n", self.to_string());
             self.apply_cell_constraints();
             // println!("Before corner arguments:\n{}", self.to_string());
             self.apply_corner_arguments();

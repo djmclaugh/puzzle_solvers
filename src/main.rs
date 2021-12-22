@@ -20,11 +20,11 @@ fn main() {
     // }
 
     let p = loopy::puzzle::Puzzle::from_string(" \
-    312..
-    3232.
-    2.223
+    ..3..
+    .3..2
+    2212.
+    3....
     ...2.
-    32..3
     ");
 
     let mut s = loopy::solver::Solver::new(p);

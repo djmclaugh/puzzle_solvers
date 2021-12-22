@@ -34,27 +34,30 @@ impl PathTracker {
         }
     }
 
-    pub fn add_edge(&mut self, c1: &Coordinate, c2: &Coordinate) {
+    // Returns the endpoints of the path the edge was added to.
+    // Returns None if the edge forms a loop (and therefore doesn't have endponts)
+    pub fn add_edge(&mut self, c1: &Coordinate, c2: &Coordinate) -> Option<(Coordinate, Coordinate)> {
+        let new_path: (Coordinate, Coordinate);
         let p1 = self.endpoints.get(c1);
         let p2 = self.endpoints.get(c2);
         if p1.is_none() && p2.is_none() {
             // Start a new path
-            self.endpoints.insert(c1.clone(), (c1.clone(), c2.clone()));
-            self.endpoints.insert(c2.clone(), (c1.clone(), c2.clone()));
+            new_path = (c1.clone(), c2.clone());
+            self.endpoints.insert(c1.clone(), new_path);
+            self.endpoints.insert(c2.clone(), new_path);
         } else if p1.is_some() && p2.is_none() {
             // Update p1 to include c2
             let old_path = p1.unwrap();
             let other;
-            let new_path;
             match old_path.0.eq(c1) {
-                    true => {
-                        other = old_path.1;
-                        new_path = (c2.clone(), other.clone());
-                    },
-                    false => {
-                        other = old_path.0;
-                        new_path = (other.clone(), c2.clone());
-                    },
+                true => {
+                    other = old_path.1;
+                    new_path = (c2.clone(), other.clone());
+                },
+                false => {
+                    other = old_path.0;
+                    new_path = (other.clone(), c2.clone());
+                },
             };
             self.endpoints.remove(c1);
             self.endpoints.insert(c2.clone(), new_path);
@@ -63,7 +66,6 @@ impl PathTracker {
             // Update p2 to include c1
             let old_path = p2.unwrap();
             let other;
-            let new_path;
             match old_path.0.eq(c2) {
                     true => {
                         other = old_path.1;
@@ -91,10 +93,13 @@ impl PathTracker {
             self.endpoints.remove(c2);
             if (other1.eq(c2) && other2.eq(c1)) || (other1.eq(c1) && other2.eq(c2)) {
                 self.num_loops += 1;
+                return Option::None
             } else {
-                self.endpoints.insert(other1, (other1, other2));
-                self.endpoints.insert(other2, (other1, other2));
+                new_path = (other1, other2);
+                self.endpoints.insert(other1, new_path);
+                self.endpoints.insert(other2, new_path);
             }
         }
+        return Option::Some(new_path);
     }
 }
