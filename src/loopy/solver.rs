@@ -907,6 +907,9 @@ impl Solver {
     }
 
     fn apply_corner_arguments(&mut self) {
+        // TODO: Consider using the endpoints of paths instead of recently changed values.
+        // One problem with recently changed values is that a corner argument might only apply
+        // once something happens far away.
         let corners: Vec<Coordinate> = self.recently_affected_corners.iter().cloned().collect();
         for corner in corners {
             if self.status != Status::InProgress {
@@ -1069,6 +1072,13 @@ impl Solver {
             }
         }
 
+        let is_2 = |p: &Puzzle, i: usize, j: usize| {
+            if !(i < n && j < n) {
+                return false;
+            }
+            let hint = p.grid[i][j];
+            return hint.is_some() && hint.unwrap() == 2;
+        };
         let is_3 = |p: &Puzzle, i: usize, j: usize| {
             if !(i < n && j < n) {
                 return false;
@@ -1113,19 +1123,27 @@ impl Solver {
                             self.set(&self.v_edges[i + 1][j + 1].clone(), false);
                         }
                     }
-                    // If a 3 is diagonal to another 3, then teir edges in the their opposite
-                    // corners are on.
-                    if is_3(&self.puzzle, i + 1, j + 1) {
+                    // If a 3 is diagonal to another 3 (with however many 2s in between), then
+                    // their edges in the their opposite corners are on.
+                    let mut next = 1;
+                    while is_2(&self.puzzle, i + next, j + next) {
+                        next = next + 1;
+                    }
+                    if is_3(&self.puzzle, i + next, j + next) {
                         self.set(&self.v_edges[i][j].clone(), true);
                         self.set(&self.h_edges[i][j].clone(), true);
-                        self.set(&self.v_edges[i + 1][j + 2].clone(), true);
-                        self.set(&self.h_edges[i + 2][j + 1].clone(), true);
+                        self.set(&self.v_edges[i + next][j + next + 1].clone(), true);
+                        self.set(&self.h_edges[i + next + 1][j + next].clone(), true);
                     }
-                    if j > 0 && is_3(&self.puzzle, i + 1, j - 1) {
+                    next = 1;
+                    while j >= next && is_2(&self.puzzle, i + next, j - next) {
+                        next = next + 1;
+                    }
+                    if j >= next && is_3(&self.puzzle, i + next, j - next) {
                         self.set(&self.v_edges[i][j + 1].clone(), true);
                         self.set(&self.h_edges[i][j].clone(), true);
-                        self.set(&self.v_edges[i + 1][j - 1].clone(), true);
-                        self.set(&self.h_edges[i + 2][j - 1].clone(), true);
+                        self.set(&self.v_edges[i + next][j - next].clone(), true);
+                        self.set(&self.h_edges[i + next + 1][j - next].clone(), true);
                     }
                 }
             }
