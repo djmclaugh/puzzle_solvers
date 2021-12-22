@@ -950,15 +950,36 @@ impl Solver {
                 if is_3(&self.puzzle, i, j) {
                     // If a 3 is next to another 3, then the edge between them is on as well as the
                     // edges on eiter side of them.
+                    // We also know that the edges comming out of the sides must be off.
+                    // Like this:
+                    //  ┄ ┄ ┄ ┄
+                    // ┆·┆· ·┆·┆
+                    //  ┄ ┄ ┄ ┄
+                    // ┆·│3│3│·┆
+                    //  ┄ ┄ ┄ ┄
+                    // ┆·┆· ·┆·┆
+                    //  ┄ ┄ ┄ ┄
                     if is_3(&self.puzzle, i + 1, j) {
                         self.set(&self.h_edges[i][j].clone(), true);
                         self.set(&self.h_edges[i + 1][j].clone(), true);
                         self.set(&self.h_edges[i + 2][j].clone(), true);
+                        if j > 0 {
+                            self.set(&self.h_edges[i + 1][j - 1].clone(), false);
+                        }
+                        if j < n - 1 {
+                            self.set(&self.h_edges[i + 1][j + 1].clone(), false);
+                        }
                     }
                     if is_3(&self.puzzle, i, j + 1) {
                         self.set(&self.v_edges[i][j].clone(), true);
                         self.set(&self.v_edges[i][j + 1].clone(), true);
                         self.set(&self.v_edges[i][j + 2].clone(), true);
+                        if i > 0 {
+                            self.set(&self.v_edges[i - 1][j + 1].clone(), false);
+                        }
+                        if i < n - 1 {
+                            self.set(&self.v_edges[i + 1][j + 1].clone(), false);
+                        }
                     }
                     // If a 3 is diagonal to another 3, then teir edges in the their opposite
                     // corners are on.
