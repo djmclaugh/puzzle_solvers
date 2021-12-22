@@ -456,6 +456,28 @@ impl Solver {
         }
     }
 
+    fn apply_corner_touch(&mut self, cell: &Coordinate, hd: &HDirection, vd: &VDirection) {
+        // If we know that one of the corners of the cell is touched from the outside, then at most
+        // one of the two edges from this cell that also touch that corner can be on.
+        let hint = match self.puzzle.grid[cell.0][cell.1] {
+            Some(x) => x,
+            None => { return; },
+        };
+        let h_opposite_edge = self.edge_from_cell(cell, &hd.opposite().to_direction());
+        let v_opposite_edge = self.edge_from_cell(cell, &vd.opposite().to_direction());
+        if hint == 2 {
+            if h_opposite_edge.is_off {
+                self.set(&v_opposite_edge, true);
+            }
+            if v_opposite_edge.is_off {
+                self.set(&h_opposite_edge, true);
+            }
+        } else if hint == 3 {
+            self.set(&h_opposite_edge, true);
+            self.set(&v_opposite_edge, true);
+        }
+    }
+
     fn apply_no_corner_entry(&mut self, corner: &Coordinate, hd: &HDirection, vd: &VDirection) {
         let h_corner_edge_option: Option<Edge> = self.edge_from_node(corner, &hd.to_direction());
         let v_corner_edge_option: Option<Edge> = self.edge_from_node(corner, &vd.to_direction());
@@ -804,6 +826,32 @@ impl Solver {
                 return;
             }
             self.recently_affected_corners.remove(&corner);
+            let is_on = |e: Option<Edge>| {
+                return match e {
+                    Some(e) => e.is_on,
+                    None => false,
+                };
+            };
+            for vd in [VDirection::UP, VDirection::DOWN] {
+                if is_on(self.edge_from_node(&corner, &vd.to_direction())) {
+                    for hd in [HDirection::RIGHT, HDirection::LEFT] {
+                        match self.cell_from_node(&corner, &hd.opposite(), &vd.opposite()) {
+                            Some(cell) => self.apply_corner_touch(&cell, &hd, &vd),
+                            None => {},
+                        };
+                    }
+                }
+            }
+            for hd in [HDirection::LEFT, HDirection::RIGHT] {
+                if is_on(self.edge_from_node(&corner, &hd.to_direction())) {
+                    for vd in [VDirection::UP, VDirection::DOWN] {
+                        match self.cell_from_node(&corner, &hd.opposite(), &vd.opposite()) {
+                            Some(cell) => self.apply_corner_touch(&cell, &hd, &vd),
+                            None => {},
+                        };
+                    }
+                }
+            }
             self.apply_unknown_corner_with_known_complement(&corner);
             for cell in self.cells_from_node(&corner) {
                 match cell {
