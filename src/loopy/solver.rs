@@ -535,6 +535,22 @@ impl Solver {
             if v_opposite_edge.is_off {
                 self.set(&h_opposite_edge, true);
             }
+            // If the opposite corner is also touched, then we actually know that this opposite
+            // touched corner must enter.
+            let opposite_corner = self.node_from_cell(cell, &hd.opposite(), &vd.opposite());
+            let is_on = |e: Option<Edge>| e.is_some() && e.unwrap().is_on;
+            if is_on(self.edge_from_node(&opposite_corner, &hd.opposite().to_direction())) {
+                match self.edge_from_node(&opposite_corner, &vd.opposite().to_direction()) {
+                    Some(e) => { self.set(&e, false); },
+                    None => {}
+                }
+            }
+            if is_on(self.edge_from_node(&opposite_corner, &vd.opposite().to_direction())) {
+                match self.edge_from_node(&opposite_corner, &hd.opposite().to_direction()) {
+                    Some(e) => { self.set(&e, false); },
+                    None => {}
+                }
+            }
         } else if hint == 3 {
             self.set(&h_opposite_edge, true);
             self.set(&v_opposite_edge, true);
