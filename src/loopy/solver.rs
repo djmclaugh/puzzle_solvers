@@ -87,7 +87,6 @@ impl Solver {
         let n = p.size;
         let mut h_edges: Vec<Vec<Edge>> = Vec::new();
         let mut v_edges: Vec<Vec<Edge>> = Vec::new();
-        let mut can_be_single_cell = true;
 
         for i in 0..n {
             h_edges.push(Vec::new());
@@ -109,7 +108,7 @@ impl Solver {
             v_edges,
             paths: PathTracker::new(),
             num_off: 0,
-            can_be_single_cell,
+            can_be_single_cell: true,
             change_flag: false,
             status: Status::InProgress,
             recently_affected_cells: HashSet::new(),
@@ -337,10 +336,6 @@ impl Solver {
     }
 
     fn apply_local_single_loop_contraints(& mut self) {
-        if self.paths.num_paths() <= 1 {
-            // Can't apply this contriant yet so don't consume the endpoints yet.
-            return;
-        }
         let endpoints_list: Vec<(Coordinate, Coordinate)> = self.paths_endpoints_to_check.iter().cloned().collect();
         for endpoints in endpoints_list {
             if self.status != Status::InProgress {
@@ -369,7 +364,15 @@ impl Solver {
                 continue;
             }
             if !edge.is_on && !edge.is_off {
-                self.set(&edge, false);
+                if self.paths.num_paths() > 1 {
+                    self.set(&edge, false);
+                } else {
+                    // There's a chance that this is the last edge missing.
+                    // Try setting the edge and see if the contraints are satisfied.
+                    let mut copy = self.clone();
+                    copy.set(&edge, true);
+                    self.set(&edge, copy.satisfies_contraints());
+                }
             }
         }
     }
