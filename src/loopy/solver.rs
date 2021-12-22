@@ -467,6 +467,55 @@ impl Solver {
                     if !e.is_on && !e.is_off { self.set(&e, true); }
                 }
             }
+
+            // TODO: Figure out how to generalize this argument.
+            if hint == 2 && on_count == 0 && unknown_count == 3 {
+                // Then we know that the corners opposite to the off edge will touch.
+                if edges[0].is_off {
+                    // Top edge off
+                    if cell.0 < self.puzzle.size - 1 {
+                        if cell.1 > 0 {
+                            self.apply_corner_touch(&Coordinate(cell.0 + 1, cell.1 - 1), &HDirection::RIGHT, &VDirection::UP)
+                        }
+                        if cell.1 < self.puzzle.size - 1 {
+                            self.apply_corner_touch(&Coordinate(cell.0 + 1, cell.1 + 1), &HDirection::LEFT, &VDirection::UP)
+                        }
+                    }
+                }
+                if edges[2].is_off {
+                    // Bottom edge off
+                    if cell.0 > 0 {
+                        if cell.1 > 0 {
+                            self.apply_corner_touch(&Coordinate(cell.0 - 1, cell.1 - 1), &HDirection::RIGHT, &VDirection::DOWN)
+                        }
+                        if cell.1 < self.puzzle.size - 1 {
+                            self.apply_corner_touch(&Coordinate(cell.0 - 1, cell.1 + 1), &HDirection::LEFT, &VDirection::DOWN)
+                        }
+                    }
+                }
+                if edges[3].is_off {
+                    // Left edge off
+                    if cell.1 < self.puzzle.size - 1 {
+                        if cell.0 > 0 {
+                            self.apply_corner_touch(&Coordinate(cell.0 - 1, cell.1 + 1), &HDirection::LEFT, &VDirection::DOWN)
+                        }
+                        if cell.0 < self.puzzle.size - 1 {
+                            self.apply_corner_touch(&Coordinate(cell.0 + 1, cell.1 + 1), &HDirection::LEFT, &VDirection::UP)
+                        }
+                    }
+                }
+                if edges[1].is_off {
+                    // Right edge off
+                    if cell.1 > 0 {
+                        if cell.0 > 0 {
+                            self.apply_corner_touch(&Coordinate(cell.0 - 1, cell.1 - 1), &HDirection::RIGHT, &VDirection::DOWN)
+                        }
+                        if cell.0 < self.puzzle.size - 1 {
+                            self.apply_corner_touch(&Coordinate(cell.0 + 1, cell.1 - 1), &HDirection::RIGHT, &VDirection::UP)
+                        }
+                    }
+                }
+            }
         }
     }
 
