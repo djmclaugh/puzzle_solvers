@@ -587,15 +587,23 @@ impl Solver {
             return;
         }
         // If both edges exist, then we know one of them has to be on.
-        // So if one is off, the other has to be on.
+        // So if one is set, the other has to be the opposite value.
         let h_corner_edge: Edge = h_corner_edge_option.unwrap();
         let v_corner_edge: Edge = v_corner_edge_option.unwrap();
         if h_corner_edge.is_off {
             self.set(&v_corner_edge, true);
             return;
         }
+        if h_corner_edge.is_on {
+            self.set(&v_corner_edge, false);
+            return;
+        }
         if v_corner_edge.is_off {
             self.set(&h_corner_edge, true);
+            return;
+        }
+        if v_corner_edge.is_on {
+            self.set(&h_corner_edge, false);
             return;
         }
         // If the cell has a hint, we might be able to know more
@@ -826,12 +834,7 @@ impl Solver {
                 return;
             }
             self.recently_affected_corners.remove(&corner);
-            let is_on = |e: Option<Edge>| {
-                return match e {
-                    Some(e) => e.is_on,
-                    None => false,
-                };
-            };
+            let is_on = |e: Option<Edge>| match e { Some(e) => e.is_on, None => false };
             for vd in [VDirection::UP, VDirection::DOWN] {
                 if is_on(self.edge_from_node(&corner, &vd.to_direction())) {
                     for hd in [HDirection::RIGHT, HDirection::LEFT] {
