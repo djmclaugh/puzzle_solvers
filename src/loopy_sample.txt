@@ -30,3 +30,10 @@
 //     .3122..
 //     3.13.22
 // ");
+
+// https://www.reddit.com/r/slitherlink/comments/n1r7ja/just_created_this_slitherlink_puzzle_try_it_out/
+// ..2..
+// ...22
+// 2222.
+// 222.2
+// 222..
