@@ -43,6 +43,14 @@ impl Puzzle {
       return rows.join("\n");
     }
 
+    pub fn is_value(&self, value:u8, i: usize, j:usize) -> bool {
+        if !(i < self.size && j < self.size) {
+            return false;
+        }
+        let hint = self.grid[i][j];
+        return hint.is_some() && hint.unwrap() == value;
+    }
+
     pub fn clone(&self) -> Puzzle {
         return Puzzle {
             size: self.grid.len(),

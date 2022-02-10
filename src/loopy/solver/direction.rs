@@ -12,6 +12,15 @@ impl Direction {
         static DIRECTIONS: [Direction; 4] = [Direction::UP, Direction::RIGHT, Direction::DOWN, Direction::LEFT];
         return DIRECTIONS.iter();
     }
+
+    pub fn opposite(&self) -> Direction {
+        match self {
+            Self::RIGHT => Self::LEFT,
+            Self::LEFT => Self::RIGHT,
+            Self::UP => Self::DOWN,
+            Self::DOWN => Self::UP,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

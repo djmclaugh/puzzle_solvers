@@ -1,6 +1,8 @@
 pub mod coordinate;
 mod path_tracker;
 mod depth_solver;
+mod initial_solver;
+mod navigation;
 mod direction;
 mod edge;
 
@@ -119,168 +121,21 @@ impl Solver {
         }
     }
 
-    fn edge_from_cell(&self, c: &Coordinate, d: &Direction) -> Edge {
-        return match d {
-            Direction::UP => self.h_edges[c.0][c.1],
-            Direction::DOWN => self.h_edges[c.0 + 1][c.1],
-            Direction::LEFT => self.v_edges[c.0][c.1],
-            Direction::RIGHT => self.v_edges[c.0][c.1 + 1],
-        }
+    fn is_value(&self, v: u8, i:usize, j:usize) -> bool {
+        return self.puzzle.is_value(v, i, j);
+    }
+    fn is_2(&self, i:usize, j:usize) -> bool {
+        return self.is_value(2, i, j);
+    }
+    fn is_3(&self, i:usize, j:usize) -> bool {
+        return self.is_value(3, i, j);
     }
 
-    fn edges_from_cell(&self, c: &Coordinate) -> [Edge; 4] {
-        return [
-            self.edge_from_cell(c, &Direction::UP),
-            self.edge_from_cell(c, &Direction::RIGHT),
-            self.edge_from_cell(c, &Direction::DOWN),
-            self.edge_from_cell(c, &Direction::LEFT),
-        ]
+    fn is_cell_value(&self, v: u8, c: &Coordinate) -> bool {
+        return self.puzzle.is_value(v, c.0, c.1);
     }
-
-    fn edge_from_node(&self, c: &Coordinate, d: &Direction) -> Option<Edge> {
-        return match d {
-            Direction::UP => {
-                if c.0 == 0 { Option::None }
-                else { Option::Some(self.v_edges[c.0 - 1][c.1]) }
-            },
-            Direction::DOWN => {
-                if c.0 == self.puzzle.size { Option::None }
-                else { Option::Some(self.v_edges[c.0][c.1]) }
-            },
-            Direction::LEFT => {
-                if c.1 == 0 { Option::None }
-                else { Option::Some(self.h_edges[c.0][c.1 - 1]) }
-            },
-            Direction::RIGHT => {
-                if c.1 == self.puzzle.size { Option::None }
-                else { Option::Some(self.h_edges[c.0][c.1]) }
-            },
-        }
-    }
-
-    fn edges_from_node(&self, c: &Coordinate) -> [Option<Edge>; 4] {
-        return [
-            self.edge_from_node(c, &Direction::UP),
-            self.edge_from_node(c, &Direction::RIGHT),
-            self.edge_from_node(c, &Direction::DOWN),
-            self.edge_from_node(c, &Direction::LEFT),
-        ]
-    }
-
-    fn nodes_from_edge(&self, e: &Edge) -> (Coordinate, Coordinate) {
-        return match e.edge_type {
-            EdgeType::HORIZONTAL => {
-                (Coordinate(e.row, e.col), Coordinate(e.row, e.col + 1))
-            },
-            EdgeType::VERTICAL => {
-                (Coordinate(e.row, e.col), Coordinate(e.row + 1, e.col))
-            },
-        }
-    }
-
-    fn nodes_from_cell(&self, c: & Coordinate) -> [Coordinate; 4] {
-        return [
-            Coordinate(c.0, c.1),
-            Coordinate(c.0 + 1, c.1),
-            Coordinate(c.0, c.1 + 1),
-            Coordinate(c.0 + 1, c.1 + 1),
-        ];
-    }
-
-    fn cells_from_edge(&self, e: &Edge) -> [Option<Coordinate>; 2] {
-        match e.edge_type {
-            EdgeType::HORIZONTAL => {
-                let a = match e.row == 0 {
-                    true => Option::None,
-                    false => Option::Some(Coordinate(e.row - 1, e.col)),
-                };
-                let b = match e.row == self.puzzle.size {
-                    true => Option::None,
-                    false => Option::Some(Coordinate(e.row, e.col)),
-                };
-                return [a, b];
-            },
-            EdgeType::VERTICAL => {
-                let a = match e.col == 0 {
-                    true => Option::None,
-                    false => Option::Some(Coordinate(e.row, e.col - 1)),
-                };
-                let b = match e.col == self.puzzle.size {
-                    true => Option::None,
-                    false => Option::Some(Coordinate(e.row, e.col)),
-                };
-                return [a, b];
-            },
-        }
-    }
-
-    fn node_from_cell(&self, cell: &Coordinate, hd: &HDirection, vd: &VDirection) -> Coordinate {
-        let row = match vd {
-            VDirection::UP => cell.0,
-            VDirection::DOWN => cell.0 + 1,
-        };
-        let col = match hd {
-            HDirection::LEFT => cell.1,
-            HDirection::RIGHT => cell.1 + 1,
-        };
-        return Coordinate(row, col);
-    }
-
-    fn cell_from_node(&self, n: &Coordinate, hd: &HDirection, vd: &VDirection) -> Option<Coordinate> {
-        let row = match vd {
-            VDirection::UP => {
-                if n.0 == 0 { return Option::None; }
-                n.0 - 1
-            },
-            VDirection::DOWN => {
-                if n.0 == self.puzzle.size { return Option::None; }
-                n.0
-            },
-        };
-        let col = match hd {
-            HDirection::LEFT => {
-                if n.1 == 0 { return Option::None; }
-                n.1 - 1
-            },
-            HDirection::RIGHT => {
-                if n.1 == self.puzzle.size { return Option::None; }
-                n.1
-            },
-        };
-        return Option::Some(Coordinate(row, col));
-    }
-
-    fn cells_from_node(&self, n: &Coordinate) -> [Option<Coordinate>; 4] {
-        return [
-            self.cell_from_node(n, &HDirection::RIGHT, &VDirection::UP),
-            self.cell_from_node(n, &HDirection::RIGHT, &VDirection::DOWN),
-            self.cell_from_node(n, &HDirection::LEFT, &VDirection::DOWN),
-            self.cell_from_node(n, &HDirection::LEFT, &VDirection::UP),
-        ]
-    }
-
-    fn node_from_node(&self, n: &Coordinate, hd: &HDirection, vd: &VDirection) -> Option<Coordinate> {
-        let row = match vd {
-            VDirection::UP => {
-                if n.0 == 0 { return Option::None; }
-                n.0 - 1
-            },
-            VDirection::DOWN => {
-                if n.0 == self.puzzle.size { return Option::None; }
-                n.0 + 1
-            },
-        };
-        let col = match hd {
-            HDirection::LEFT => {
-                if n.1 == 0 { return Option::None; }
-                n.1 - 1
-            },
-            HDirection::RIGHT => {
-                if n.1 == self.puzzle.size { return Option::None; }
-                n.1 + 1
-            },
-        };
-        return Option::Some(Coordinate(row, col));
+    fn is_cell_3(&self, c:&Coordinate) -> bool {
+        return self.is_cell_value(3, c);
     }
 
     fn set(& mut self, edge: &Edge, on: bool) {
@@ -1086,7 +941,10 @@ impl Solver {
 
     // Solve the puzzle using all non-recursive ways we know of.
     pub fn non_recursive_solve(&mut self) {
-        self.initial_solve();
+        // Only bother doing the initial solve if no edges have been found yet.
+        if self.paths.num_paths() == 0 {
+            self.initial_solve();
+        }
         self.change_flag = true;
         while self.change_flag && self.status == Status::InProgress {
             self.change_flag = false;
@@ -1138,212 +996,5 @@ impl Solver {
         }
 
         return solutions;
-    }
-
-    fn initial_solve(&mut self) {
-        let n = self.puzzle.size;
-        // Apply 0s
-        for i in 0..n {
-            for j in 0..n {
-                match self.puzzle.grid[i][j] {
-                    Some(0) => {
-                        let c = Coordinate(i, j);
-                        for d in Direction::iter() {
-                            self.set(&self.edge_from_cell(&c, &d), false);
-                        }
-                    },
-                    Some(2) => {
-                        self.can_be_single_cell = false;
-                    },
-                    Some(3) => {
-                        self.can_be_single_cell = false;
-                    },
-                    Some(4) => {
-                        let c = Coordinate(i, j);
-                        for d in Direction::iter() {
-                            self.set(&self.edge_from_cell(&c, &d), true);
-                        }
-                    },
-                    _ => {
-                        // Do Nothing
-                    }
-                }
-            }
-        }
-
-        let is_2 = |p: &Puzzle, i: usize, j: usize| {
-            if !(i < n && j < n) {
-                return false;
-            }
-            let hint = p.grid[i][j];
-            return hint.is_some() && hint.unwrap() == 2;
-        };
-        let is_3 = |p: &Puzzle, i: usize, j: usize| {
-            if !(i < n && j < n) {
-                return false;
-            }
-            let hint = p.grid[i][j];
-            return hint.is_some() && hint.unwrap() == 3;
-        };
-
-        for i in 0..n {
-            for j in 0..n {
-                if is_3(&self.puzzle, i, j) {
-                    // If a 3 is next to another 3, then the edge between them is on as well as the
-                    // edges on eiter side of them.
-                    // We also know that the edges comming out of the sides must be off.
-                    // Like this:
-                    //  ┄ ┄ ┄ ┄
-                    // ┆·┆· ·┆·┆
-                    //  ┄ ┄ ┄ ┄
-                    // ┆·│3│3│·┆
-                    //  ┄ ┄ ┄ ┄
-                    // ┆·┆· ·┆·┆
-                    //  ┄ ┄ ┄ ┄
-                    if is_3(&self.puzzle, i + 1, j) {
-                        self.set(&self.h_edges[i][j].clone(), true);
-                        self.set(&self.h_edges[i + 1][j].clone(), true);
-                        self.set(&self.h_edges[i + 2][j].clone(), true);
-                        if j > 0 {
-                            self.set(&self.h_edges[i + 1][j - 1].clone(), false);
-                        }
-                        if j < n - 1 {
-                            self.set(&self.h_edges[i + 1][j + 1].clone(), false);
-                        }
-                    }
-                    if is_3(&self.puzzle, i, j + 1) {
-                        self.set(&self.v_edges[i][j].clone(), true);
-                        self.set(&self.v_edges[i][j + 1].clone(), true);
-                        self.set(&self.v_edges[i][j + 2].clone(), true);
-                        if i > 0 {
-                            self.set(&self.v_edges[i - 1][j + 1].clone(), false);
-                        }
-                        if i < n - 1 {
-                            self.set(&self.v_edges[i + 1][j + 1].clone(), false);
-                        }
-                    }
-                    // If a 3 is diagonal to another 3 (with however many 2s in between), then
-                    // their edges in the their opposite corners are on.
-                    let mut next = 1;
-                    while is_2(&self.puzzle, i + next, j + next) {
-                        next = next + 1;
-                    }
-                    if is_3(&self.puzzle, i + next, j + next) {
-                        self.set(&self.v_edges[i][j].clone(), true);
-                        self.set(&self.h_edges[i][j].clone(), true);
-                        self.set(&self.v_edges[i + next][j + next + 1].clone(), true);
-                        self.set(&self.h_edges[i + next + 1][j + next].clone(), true);
-                    }
-                    next = 1;
-                    while j >= next && is_2(&self.puzzle, i + next, j - next) {
-                        next = next + 1;
-                    }
-                    if j >= next && is_3(&self.puzzle, i + next, j - next) {
-                        self.set(&self.v_edges[i][j + 1].clone(), true);
-                        self.set(&self.h_edges[i][j].clone(), true);
-                        self.set(&self.v_edges[i + next][j - next].clone(), true);
-                        self.set(&self.h_edges[i + next + 1][j - next].clone(), true);
-                    }
-                }
-            }
-        }
-
-        // Look at corners
-        let top_left = Coordinate(0, 0);
-        match self.puzzle.grid[0][0] {
-            Some(1) => {
-                self.set(&self.edge_from_cell(&top_left, &Direction::UP), false);
-                self.set(&self.edge_from_cell(&top_left, &Direction::LEFT), false);
-            },
-            Some(2) => {
-                self.set(&self.edge_from_cell(&Coordinate(0, 1), &Direction::UP), true);
-                self.set(&self.edge_from_cell(&Coordinate(1, 0), &Direction::LEFT), true);
-                if is_3(&self.puzzle, 0, 1) {
-                    self.set(&self.edge_from_cell(&Coordinate(0, 1), &Direction::RIGHT), true)
-                }
-                if is_3(&self.puzzle, 1, 0) {
-                    self.set(&self.edge_from_cell(&Coordinate(1, 0), &Direction::DOWN), true)
-                }
-            },
-            Some(3) => {
-                self.set(&self.edge_from_cell(&top_left, &Direction::UP), true);
-                self.set(&self.edge_from_cell(&top_left, &Direction::LEFT), true);
-            },
-            _ => {
-                // Do nothing
-            },
-        }
-        let bottom_left = Coordinate(n - 1, 0);
-        match self.puzzle.grid[n - 1][0] {
-            Some(1) => {
-                self.set(&self.edge_from_cell(&bottom_left, &Direction::DOWN), false);
-                self.set(&self.edge_from_cell(&bottom_left, &Direction::LEFT), false);
-            },
-            Some(2) => {
-                self.set(&self.edge_from_cell(&Coordinate(n - 1, 1), &Direction::DOWN), true);
-                self.set(&self.edge_from_cell(&Coordinate(n - 2, 0), &Direction::LEFT), true);
-                if is_3(&self.puzzle, n - 1, 1) {
-                    self.set(&self.edge_from_cell(&Coordinate(n-1, 1), &Direction::RIGHT), true)
-                }
-                if is_3(&self.puzzle, n - 2, 0) {
-                    self.set(&self.edge_from_cell(&Coordinate(n - 2, 0), &Direction::UP), true)
-                }
-            },
-            Some(3) => {
-                self.set(&self.edge_from_cell(&bottom_left, &Direction::DOWN), true);
-                self.set(&self.edge_from_cell(&bottom_left, &Direction::LEFT), true);
-            },
-            _ => {
-                // Do nothing
-            },
-        }
-        let top_right = Coordinate(0, n - 1);
-        match self.puzzle.grid[0][n - 1] {
-            Some(1) => {
-                self.set(&self.edge_from_cell(&top_right, &Direction::UP), false);
-                self.set(&self.edge_from_cell(&top_right, &Direction::RIGHT), false);
-            },
-            Some(2) => {
-                self.set(&self.edge_from_cell(&Coordinate(0, n - 2), &Direction::UP), true);
-                self.set(&self.edge_from_cell(&Coordinate(1, n - 1), &Direction::RIGHT), true);
-                if is_3(&self.puzzle, 0, n - 2) {
-                    self.set(&self.edge_from_cell(&Coordinate(0, n - 2), &Direction::LEFT), true)
-                }
-                if is_3(&self.puzzle, 1, n - 1) {
-                    self.set(&self.edge_from_cell(&Coordinate(1, n - 1), &Direction::DOWN), true)
-                }
-            },
-            Some(3) => {
-                self.set(&self.edge_from_cell(&top_right, &Direction::UP), true);
-                self.set(&self.edge_from_cell(&top_right, &Direction::RIGHT), true);
-            },
-            _ => {
-                // Do nothing
-            },
-        }
-        let bottom_right = Coordinate(n - 1, n - 1);
-        match self.puzzle.grid[n - 1][n - 1] {
-            Some(1) => {
-                self.set(&self.edge_from_cell(&bottom_right, &Direction::DOWN), false);
-                self.set(&self.edge_from_cell(&bottom_right, &Direction::RIGHT), false);
-            },
-            Some(2) => {
-                self.set(&self.edge_from_cell(&Coordinate(n-1, n-2), &Direction::DOWN), true);
-                self.set(&self.edge_from_cell(&Coordinate(n-2, n-1), &Direction::RIGHT), true);
-                if is_3(&self.puzzle, n - 1, n - 2) {
-                    self.set(&self.edge_from_cell(&Coordinate(n - 1, n - 2), &Direction::LEFT), true)
-                }
-                if is_3(&self.puzzle, n - 2, n - 1) {
-                    self.set(&self.edge_from_cell(&Coordinate(n - 2, n - 1), &Direction::UP), true)
-                }
-            },
-            Some(3) => {
-                self.set(&self.edge_from_cell(&bottom_right, &Direction::DOWN), true);
-                self.set(&self.edge_from_cell(&bottom_right, &Direction::RIGHT), true);
-            },
-            _ => {
-                // Do nothing
-            },
-        }
     }
 }
