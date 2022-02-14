@@ -1,12 +1,12 @@
 use super::coordinate::Coordinate;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum EdgeType {
     HORIZONTAL,
     VERTICAL
 }
 
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
 pub struct Edge {
     pub is_on: bool,
     pub is_off: bool,
@@ -75,5 +75,15 @@ impl Edge {
             return Option::Some(self_nodes[1]);
         }
         return Option::None;
+    }
+
+    pub fn other_node(&self, node: &Coordinate) -> Coordinate {
+        let nodes = self.nodes();
+        if node.eq(&nodes[0]) {
+            return nodes[1];
+        } else if node.eq(&nodes[1]) {
+            return nodes[0];
+        }
+        panic!("Given node must be one of the two nodes.");
     }
 }

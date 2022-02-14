@@ -21,6 +21,19 @@ impl Direction {
             Self::DOWN => Self::UP,
         }
     }
+
+    pub fn clockwise(&self) -> Direction {
+        match self {
+            Self::RIGHT => Self::UP,
+            Self::LEFT => Self::DOWN,
+            Self::UP => Self::LEFT,
+            Self::DOWN => Self::RIGHT,
+        }
+    }
+
+    pub fn counter_clockwise(&self) -> Direction {
+        return self.clockwise().opposite();
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

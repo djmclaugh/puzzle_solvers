@@ -1,4 +1,5 @@
 use super::Solver;
+use super::Status;
 
 use super::coordinate::Coordinate;
 use super::direction::Direction;
@@ -6,6 +7,8 @@ use super::direction::Direction;
 // Easy and obvious solver methods that should be applied at the begining of every puzzle.
 impl Solver {
     fn hint_analysis(&mut self) {
+        let mut has_4 = false;
+        let mut has_2_or_3 = false;
         for i in 0..self.puzzle.size {
             for j in 0..self.puzzle.size {
                 match self.puzzle.grid[i][j] {
@@ -20,15 +23,18 @@ impl Solver {
                         // If a cell has the 2 hint, then the solution can not be a loop around a
                         // single cell.
                         self.can_be_single_cell = false;
+                        has_2_or_3 = true;
                     },
                     Some(3) => {
                         // If a cell has the 3 hint, then the solution can not be a loop around a
                         // single cell.
                         self.can_be_single_cell = false;
+                        has_2_or_3 = true;
                     },
                     Some(4) => {
                         // If a cell has the 4 hint, then the solution must be a loop around a this
                         // single cell.
+                        has_4 = true;
                         let c = Coordinate(i, j);
                         for d in Direction::iter() {
                             self.set(&self.edge_from_cell(&c, &d), true);
@@ -38,6 +44,9 @@ impl Solver {
                     _ => {}
                 }
             }
+        }
+        if has_4 && has_2_or_3 {
+            self.status = Status::Unsolvable;
         }
     }
 
@@ -130,7 +139,7 @@ impl Solver {
                         if i > 0 {
                             self.set(&self.v_edges[i - 1][j + 1].clone(), false);
                         }
-                        if i < self.puzzle.size {
+                        if i < self.puzzle.size - 1 {
                             self.set(&self.v_edges[i + 1][j + 1].clone(), false);
                         }
                     }

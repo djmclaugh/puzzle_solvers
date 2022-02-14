@@ -6,6 +6,9 @@ use super::direction::VDirection;
 use super::edge::Edge;
 use super::edge::EdgeType;
 
+use std::collections::HashSet;
+use std::iter::FromIterator;
+
 impl Solver {
     pub fn edge_from_cell(&self, c: &Coordinate, d: &Direction) -> Edge {
         return match d {
@@ -62,6 +65,25 @@ impl Solver {
             },
             EdgeType::VERTICAL => {
                 (Coordinate(e.row, e.col), Coordinate(e.row + 1, e.col))
+            },
+        }
+    }
+
+    pub fn node_from_edge(&self, e: &Edge, d: &Direction) -> Option<Coordinate> {
+        return match e.edge_type {
+            EdgeType::HORIZONTAL => {
+                match d {
+                    Direction::LEFT => Option::Some(Coordinate(e.row, e.col)),
+                    Direction::RIGHT => Option::Some(Coordinate(e.row, e.col + 1)),
+                    _ => Option::None,
+                }
+            },
+            EdgeType::VERTICAL => {
+                match d {
+                    Direction::UP => Option::Some(Coordinate(e.row, e.col)),
+                    Direction::DOWN => Option::Some(Coordinate(e.row + 1, e.col)),
+                    _ => Option::None,
+                }
             },
         }
     }
@@ -194,5 +216,174 @@ impl Solver {
                 Option::None
             },
         };
+    }
+
+    pub fn outer_inner_border_argument(&mut self) {
+        // Find any top most horizontal edge that isn't off yet.
+        let mut e = self.h_edges[0][0];
+        for row in 0..(self.puzzle.size + 1) {
+            for col in 0..self.puzzle.size {
+                e = self.h_edges[row][col];
+                if !e.is_off {
+                    break;
+                }
+            }
+            if !e.is_off {
+                break;
+            }
+        }
+        // Start by going right and whenever there is a fork, chose a clockwise turn over going
+        // straight over a counter clocwise turn.
+        let is_available = |e: Option<Edge>| e.is_some() && !e.unwrap().is_off;
+        let mut border:Vec<Edge> = Vec::new();
+        let mut directions:Vec<Direction> = Vec::new();
+        border.push(e);
+        let mut d = Direction::RIGHT;
+        directions.push(d);
+        let mut n = self.node_from_edge(&e, &d).unwrap();
+        let mut next_e;
+        if is_available(self.edge_from_node(&n, &d.clockwise())) {
+            next_e = self.edge_from_node(&n, &d.clockwise()).unwrap();
+            d = d.clockwise();
+        } else if is_available(self.edge_from_node(&n, &d)) {
+            next_e = self.edge_from_node(&n, &d).unwrap();
+        } else if is_available(self.edge_from_node(&n, &d.counter_clockwise())) {
+            next_e = self.edge_from_node(&n, &d.counter_clockwise()).unwrap();
+            d = d.counter_clockwise();
+        } else {
+            return;
+            //panic!("This shouldn't happen");
+        }
+        while !next_e.eq(&border[0]) {
+            border.push(next_e);
+            directions.push(d);
+            e = next_e;
+            n = self.node_from_edge(&e, &d).unwrap();
+            if is_available(self.edge_from_node(&n, &d.clockwise())) {
+                next_e = self.edge_from_node(&n, &d.clockwise()).unwrap();
+                d = d.clockwise();
+            } else if is_available(self.edge_from_node(&n, &d)) {
+                next_e = self.edge_from_node(&n, &d).unwrap();
+            } else if is_available(self.edge_from_node(&n, &d.counter_clockwise())) {
+                next_e = self.edge_from_node(&n, &d.counter_clockwise()).unwrap();
+                d = d.counter_clockwise();
+            } else {
+                return;
+                //panic!("This shouldn't happen");
+            }
+        }
+
+        let border_edges: HashSet<Edge> = HashSet::from_iter(border.iter().cloned());
+
+        for i in 0..border.len() {
+            let mut intersection: Vec<Edge> = Vec::new();
+            let mut has_been_out = false;
+            let mut has_been_back_in = false;
+            let mut has_been_out_again = false;
+            let mut inner_e = border[i];
+            intersection.push(inner_e);
+            let mut inner_d = directions[i];
+
+            let mut inner_n = self.node_from_edge(&inner_e, &inner_d).unwrap();
+            let mut next_inner_e;
+            if is_available(self.edge_from_node(&inner_n, &inner_d.counter_clockwise())) {
+                next_inner_e = self.edge_from_node(&inner_n, &inner_d.counter_clockwise()).unwrap();
+                inner_d = inner_d.counter_clockwise();
+            } else if is_available(self.edge_from_node(&inner_n, &inner_d)) {
+                next_inner_e = self.edge_from_node(&inner_n, &inner_d).unwrap();
+            } else if is_available(self.edge_from_node(&inner_n, &inner_d.clockwise())) {
+                next_inner_e = self.edge_from_node(&inner_n, &inner_d.clockwise()).unwrap();
+                inner_d = inner_d.clockwise();
+            } else {
+                return;
+                //panic!("This shouldn't happen");
+            }
+            while !next_inner_e.eq(&intersection[0]) {
+                if has_been_out == false {
+                    if !border_edges.contains(&next_inner_e) {
+                        has_been_out = true;
+                    }
+                } else if has_been_back_in == false {
+                    if border_edges.contains(&next_inner_e) {
+                        has_been_back_in = true;
+                    }
+                } else {
+                    if !border_edges.contains(&next_inner_e) {
+                        has_been_out_again = true;
+                    }
+                }
+                if border_edges.contains(&next_inner_e) {
+                    intersection.push(next_inner_e);
+                }
+                inner_e = next_inner_e;
+                inner_n = self.node_from_edge(&inner_e, &inner_d).unwrap();
+                if is_available(self.edge_from_node(&inner_n, &inner_d.counter_clockwise())) {
+                    next_inner_e = self.edge_from_node(&inner_n, &inner_d.counter_clockwise()).unwrap();
+                    inner_d = inner_d.counter_clockwise();
+                } else if is_available(self.edge_from_node(&inner_n, &inner_d)) {
+                    next_inner_e = self.edge_from_node(&inner_n, &inner_d).unwrap();
+                } else if is_available(self.edge_from_node(&inner_n, &inner_d.clockwise())) {
+                    next_inner_e = self.edge_from_node(&inner_n, &inner_d.clockwise()).unwrap();
+                    inner_d = inner_d.clockwise();
+                } else {
+                    return;
+                    //panic!("This shouldn't happen");
+                }
+            }
+            if has_been_out_again {
+                // If the inner loop touched the outer loop into two non-consecutive sections, then
+                // that means that the inner section divides the grid into at least two sections.
+                // If there is at leas one edge in both sections, then the two sections must be
+                // connected and they only way to do that is to turn on the intersection.
+
+                let mut count = 0;
+                let intersection_set: HashSet<Edge> = HashSet::from_iter(intersection.iter().cloned());
+                for e in intersection.iter() {
+                    if self.connected_component_has_on(&e.nodes()[0], &intersection_set) {
+                        count += 1;
+                    }
+                    if self.connected_component_has_on(&e.nodes()[1], &intersection_set) {
+                        count += 1;
+                    }
+                    if count > 2 {
+                        break;
+                    }
+                }
+                if count > 2 {
+                    for e in intersection.iter() {
+                        self.set(&e, true);
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    pub fn connected_component_has_on(&self, start: &Coordinate, edges_to_avoid: &HashSet<Edge>) -> bool {
+        let mut already_added: HashSet<Coordinate> = HashSet::new();
+        let mut to_visit: Vec<Coordinate> = Vec::new();
+        to_visit.push(start.clone());
+        already_added.insert(start.clone());
+        while !to_visit.is_empty() {
+            let n = to_visit.pop().unwrap();
+            for edge in self.edges_from_node(&n) {
+                match edge {
+                    Some(e) => {
+                        if !e.is_off && !edges_to_avoid.contains(&e) {
+                            if e.is_on {
+                                return true;
+                            }
+                            let other = e.other_node(&n);
+                            if !already_added.contains(&other) {
+                                to_visit.push(other);
+                                already_added.insert(other);
+                            }
+                        }
+                    },
+                    _ => {},
+                }
+            }
+        }
+        return false;
     }
 }
