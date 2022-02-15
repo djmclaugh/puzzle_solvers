@@ -292,8 +292,6 @@ impl Solver {
             let mut has_been_back_in = false;
             let mut has_been_out_again = false;
             let mut inner_e = border[i];
-            intersection.push(inner_e);
-            inner_path.push(inner_e);
             let mut inner_d = directions[i];
 
             let potential_degree = |c: &Coordinate| {
@@ -360,6 +358,8 @@ impl Solver {
                         break;
                     }
                 }
+                println!("{:?}", intersection);
+                println!("{}", count);
                 if count > 2 {
                     for e in intersection.iter() {
                         self.set(&e, true);

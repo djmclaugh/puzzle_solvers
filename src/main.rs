@@ -20,9 +20,10 @@ fn main() {
     // }
 
     let p = loopy::puzzle::Puzzle::from_string(" \
-        ..0
-        .0.
-        4..
+        ...0
+        ..01
+        ..2.
+        0.3.
     ");
 
     let mut s = loopy::solver::Solver::new(p);
