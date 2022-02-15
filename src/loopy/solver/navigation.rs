@@ -251,8 +251,9 @@ impl Solver {
             next_e = self.edge_from_node(&n, &d.counter_clockwise()).unwrap();
             d = d.counter_clockwise();
         } else {
+            // Edge with dead end found.
+            // Return for now and let other inference rules get rid of that edge.
             return;
-            //panic!("This shouldn't happen");
         }
         while !next_e.eq(&border[0]) {
             border.push(next_e);
@@ -268,8 +269,9 @@ impl Solver {
                 next_e = self.edge_from_node(&n, &d.counter_clockwise()).unwrap();
                 d = d.counter_clockwise();
             } else {
+                // Edge with dead end found.
+                // Return for now and let other inference rules get rid of that edge.
                 return;
-                //panic!("This shouldn't happen");
             }
         }
 
@@ -277,65 +279,73 @@ impl Solver {
 
         for i in 0..border.len() {
             let mut intersection: Vec<Edge> = Vec::new();
+            let mut inner_path: Vec<Edge> = Vec::new();
+            let mut has_at_least_one_non_set_intersection = false;
             let mut has_been_out = false;
             let mut has_been_back_in = false;
             let mut has_been_out_again = false;
             let mut inner_e = border[i];
             intersection.push(inner_e);
+            inner_path.push(inner_e);
             let mut inner_d = directions[i];
 
-            let mut inner_n = self.node_from_edge(&inner_e, &inner_d).unwrap();
-            let mut next_inner_e;
-            if is_available(self.edge_from_node(&inner_n, &inner_d.counter_clockwise())) {
-                next_inner_e = self.edge_from_node(&inner_n, &inner_d.counter_clockwise()).unwrap();
-                inner_d = inner_d.counter_clockwise();
-            } else if is_available(self.edge_from_node(&inner_n, &inner_d)) {
-                next_inner_e = self.edge_from_node(&inner_n, &inner_d).unwrap();
-            } else if is_available(self.edge_from_node(&inner_n, &inner_d.clockwise())) {
-                next_inner_e = self.edge_from_node(&inner_n, &inner_d.clockwise()).unwrap();
-                inner_d = inner_d.clockwise();
-            } else {
-                return;
-                //panic!("This shouldn't happen");
-            }
-            while !next_inner_e.eq(&intersection[0]) {
+            let potential_degree = |c: &Coordinate| {
+                let mut count = 0;
+                for e in self.edges_from_node(c) {
+                    if e.is_some() && !e.unwrap().is_off {
+                        count += 1;
+                    }
+                }
+                return count;
+            };
+
+            let mut first_run = true;
+            while first_run || !inner_e.eq(&intersection[0]) {
+                first_run = false;
+                let inner_n = self.node_from_edge(&inner_e, &inner_d).unwrap();
                 if has_been_out == false {
-                    if !border_edges.contains(&next_inner_e) {
+                    if potential_degree(&inner_n) > 2 {
                         has_been_out = true;
+                        println!("has been out: {:?}", inner_e)
                     }
                 } else if has_been_back_in == false {
-                    if border_edges.contains(&next_inner_e) {
+                    if border_edges.contains(&inner_e) {
                         has_been_back_in = true;
                     }
                 } else {
-                    if !border_edges.contains(&next_inner_e) {
+                    if potential_degree(&inner_n) > 2 {
                         has_been_out_again = true;
                     }
                 }
-                if border_edges.contains(&next_inner_e) {
-                    intersection.push(next_inner_e);
+                if border_edges.contains(&inner_e) {
+                    intersection.push(inner_e);
+                    if !inner_e.is_on {
+                        has_at_least_one_non_set_intersection = true;
+                    }
                 }
-                inner_e = next_inner_e;
-                inner_n = self.node_from_edge(&inner_e, &inner_d).unwrap();
                 if is_available(self.edge_from_node(&inner_n, &inner_d.counter_clockwise())) {
-                    next_inner_e = self.edge_from_node(&inner_n, &inner_d.counter_clockwise()).unwrap();
+                    inner_e = self.edge_from_node(&inner_n, &inner_d.counter_clockwise()).unwrap();
                     inner_d = inner_d.counter_clockwise();
                 } else if is_available(self.edge_from_node(&inner_n, &inner_d)) {
-                    next_inner_e = self.edge_from_node(&inner_n, &inner_d).unwrap();
+                    inner_e = self.edge_from_node(&inner_n, &inner_d).unwrap();
                 } else if is_available(self.edge_from_node(&inner_n, &inner_d.clockwise())) {
-                    next_inner_e = self.edge_from_node(&inner_n, &inner_d.clockwise()).unwrap();
+                    inner_e = self.edge_from_node(&inner_n, &inner_d.clockwise()).unwrap();
                     inner_d = inner_d.clockwise();
                 } else {
+                    // Edge with dead end found.
+                    // Return for now and let other inference rules get rid of that edge.
+                    println!("dead end");
                     return;
-                    //panic!("This shouldn't happen");
                 }
             }
-            if has_been_out_again {
+            println!("Inner Path: {:?}", inner_path);
+            if has_been_out_again && has_at_least_one_non_set_intersection {
                 // If the inner loop touched the outer loop into two non-consecutive sections, then
                 // that means that the inner section divides the grid into at least two sections.
                 // If there is at leas one edge in both sections, then the two sections must be
                 // connected and they only way to do that is to turn on the intersection.
-
+                println!("{:?}", intersection);
+                println!("{}\n", self.to_string());
                 let mut count = 0;
                 let intersection_set: HashSet<Edge> = HashSet::from_iter(intersection.iter().cloned());
                 for e in intersection.iter() {
@@ -353,6 +363,7 @@ impl Solver {
                     for e in intersection.iter() {
                         self.set(&e, true);
                     }
+                    println!("After:\n{}\n", self.to_string());
                     return;
                 }
             }
