@@ -306,7 +306,6 @@ impl Solver {
                 if has_been_out == false {
                     if potential_degree(&inner_n) > 2 {
                         has_been_out = true;
-                        println!("has been out: {:?}", inner_e)
                     }
                 } else if has_been_back_in == false {
                     if border_edges.contains(&inner_e) {
@@ -334,18 +333,14 @@ impl Solver {
                 } else {
                     // Edge with dead end found.
                     // Return for now and let other inference rules get rid of that edge.
-                    println!("dead end");
                     return;
                 }
             }
-            println!("Inner Path: {:?}", inner_path);
             if has_been_out_again && has_at_least_one_non_set_intersection {
                 // If the inner loop touched the outer loop into two non-consecutive sections, then
                 // that means that the inner section divides the grid into at least two sections.
                 // If there is at leas one edge in both sections, then the two sections must be
                 // connected and they only way to do that is to turn on the intersection.
-                println!("{:?}", intersection);
-                println!("{}\n", self.to_string());
                 let mut count = 0;
                 let intersection_set: HashSet<Edge> = HashSet::from_iter(intersection.iter().cloned());
                 for e in intersection.iter() {
@@ -363,7 +358,6 @@ impl Solver {
                     for e in intersection.iter() {
                         self.set(&e, true);
                     }
-                    println!("After:\n{}\n", self.to_string());
                     return;
                 }
             }
