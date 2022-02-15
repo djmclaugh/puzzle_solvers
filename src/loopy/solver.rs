@@ -2,6 +2,7 @@ pub mod coordinate;
 mod inside_tracker;
 mod path_tracker;
 mod depth_solver;
+mod corner_entry_solver;
 mod initial_solver;
 mod navigation;
 mod direction;
@@ -47,6 +48,7 @@ pub struct Solver {
     recently_affected_nodes: HashSet<Coordinate>,
     recently_affected_corners: HashSet<Coordinate>,
     paths_endpoints_to_check: HashSet<(Coordinate, Coordinate)>,
+    corner_solver_data: corner_entry_solver::CornerSolverData,
     paths: PathTracker,
     change_flag: bool,
     can_be_single_cell: bool,
@@ -109,6 +111,7 @@ impl Solver {
             puzzle: p,
             h_edges,
             v_edges,
+            corner_solver_data: corner_entry_solver::CornerSolverData::new(),
             paths: PathTracker::new(),
             num_off: 0,
             can_be_single_cell: true,
@@ -443,233 +446,11 @@ impl Solver {
     }
 
     fn apply_no_corner_entry(&mut self, corner: &Coordinate, hd: &HDirection, vd: &VDirection) {
-        let h_corner_edge_option: Option<Edge> = self.edge_from_node(corner, &hd.to_direction());
-        let v_corner_edge_option: Option<Edge> = self.edge_from_node(corner, &vd.to_direction());
-        // We know that either both of the corner edges are on or both are off.
-        // If either edge doesn't exist, then the other has to be off.
-        if h_corner_edge_option.is_none() {
-            match v_corner_edge_option {
-                Some(e) => { self.set(&e, false); },
-                None => {}
-            }
-            return;
-        }
-        if v_corner_edge_option.is_none() {
-            match h_corner_edge_option {
-                Some(e) => { self.set(&e, false); },
-                None => {}
-            }
-            return;
-        }
-        // If both edges exist, then we know they have to match.
-        let h_corner_edge: Edge = h_corner_edge_option.unwrap();
-        let v_corner_edge: Edge = v_corner_edge_option.unwrap();
-        if h_corner_edge.is_off {
-            self.set(&v_corner_edge, false);
-            return;
-        }
-        if h_corner_edge.is_on {
-            self.set(&v_corner_edge, true);
-            return;
-        }
-        if v_corner_edge.is_off {
-            self.set(&h_corner_edge, false);
-            return;
-        }
-        if v_corner_edge.is_on {
-            self.set(&h_corner_edge, true);
-            return;
-        }
-        // If the cell has a hint, we might be able to know more
-        let cell = match self.cell_from_node(corner, hd, vd) {
-            Some(x) => x,
-            None => { return; },
-        };
-        let hint = match self.puzzle.grid[cell.0][cell.1] {
-            Some(x) => x,
-            None => { return; },
-        };
-
-        let h_other_edge = self.edge_from_cell(&cell, &vd.to_direction());
-        let v_other_edge = self.edge_from_cell(&cell, &hd.to_direction());
-
-        if hint == 0 {
-            // If the hint is 0, then all the edges should already be off, nothing else to do.
-        } else if hint == 1 {
-            // Since this cell can have at most one edge on, we know the the corner edges must be
-            // off.
-            self.set(&h_corner_edge, false);
-            self.set(&v_corner_edge, false);
-        } else if hint == 2 {
-            // If one of the other edges is already on, then the two corner edges must be off.
-            if h_other_edge.is_on || v_other_edge.is_on {
-                self.set(&h_corner_edge, false);
-                self.set(&v_corner_edge, false);
-                return;
-            }
-            // If one of the other edges is already off, then the two corner edges must be on.
-            if h_other_edge.is_off || v_other_edge.is_off {
-                self.set(&h_corner_edge, true);
-                self.set(&v_corner_edge, true);
-                return;
-            }
-            // If both other edges are unknown, then we can still know that the "no corner entry"
-            // will propogate in the opposite corner.
-            let opposite_corner = self.node_from_cell(&cell, hd, vd);
-            self.apply_no_corner_entry(&opposite_corner, hd, vd);
-
-            // Not only that but the "corner entry" propogate in the other two corners
-            let other_corner_1 = self.node_from_cell(&cell, &hd.opposite(), vd);
-            self.apply_corner_entry(&other_corner_1, &hd.opposite(), vd);
-            let other_corner_2 = self.node_from_cell(&cell, hd, &vd.opposite());
-            self.apply_corner_entry(&other_corner_2, hd, &vd.opposite());
-
-        } else if hint == 3 {
-            // Since we can't afford two edges being off, both corner edges must be on.
-            self.set(&h_corner_edge, true);
-            self.set(&v_corner_edge, true);
-        }
+        self.remove_entry_at_node(corner, hd, vd);
     }
 
     fn apply_corner_entry(&mut self, corner: &Coordinate, hd: &HDirection, vd: &VDirection) {
-        let h_corner_edge_option: Option<Edge> = self.edge_from_node(corner, &hd.to_direction());
-        let v_corner_edge_option: Option<Edge> = self.edge_from_node(corner, &vd.to_direction());
-
-        // We know that exactly one of those edges has to be on.
-        // If either edge doesn't exist, then the other has to be on.
-        if h_corner_edge_option.is_none() {
-            match v_corner_edge_option {
-                Some(e) => { self.set(&e, true); },
-                None => { self.status = Status::Unsolvable; }
-            }
-            return;
-        }
-        if v_corner_edge_option.is_none() {
-            match h_corner_edge_option {
-                Some(e) => { self.set(&e, true); },
-                None => { self.status = Status::Unsolvable; }
-            }
-            return;
-        }
-
-        // If both edges exist, then we know exactly one of them has to be on.
-        // So if one is set, the other has to be the opposite value.
-        let h_corner_edge: Edge = h_corner_edge_option.unwrap();
-        let v_corner_edge: Edge = v_corner_edge_option.unwrap();
-        if h_corner_edge.is_off {
-            self.set(&v_corner_edge, true);
-            return;
-        }
-        if h_corner_edge.is_on {
-            self.set(&v_corner_edge, false);
-            return;
-        }
-        if v_corner_edge.is_off {
-            self.set(&h_corner_edge, true);
-            return;
-        }
-        if v_corner_edge.is_on {
-            self.set(&h_corner_edge, false);
-            return;
-        }
-
-        // If the cell has a hint, we might be able to know more
-        let cell = match self.cell_from_node(corner, hd, vd) {
-            Some(x) => x,
-            None => { return; },
-        };
-        let h_other_edge = self.edge_from_cell(&cell, &vd.to_direction());
-        let v_other_edge = self.edge_from_cell(&cell, &hd.to_direction());
-
-        match self.puzzle.grid[cell.0][cell.1] {
-            Some(0) => {
-                // Impossible
-                self.status = Status::Unsolvable;
-            },
-            Some(1) => {
-                // Since we already know that one of the corner edges is on, we know that the two
-                // other edges must be off.
-                self.set(&h_other_edge, false);
-                self.set(&v_other_edge, false);
-            },
-            Some(2) => {
-                // Exactly one of the other edges must be on.
-                if h_other_edge.is_off {
-                    self.set(&v_other_edge, true);
-                    return;
-                }
-                if v_other_edge.is_off {
-                    self.set(&h_other_edge, true);
-                    return;
-                }
-                if h_other_edge.is_on {
-                    self.set(&v_other_edge, false);
-                    return;
-                }
-                if v_other_edge.is_on {
-                    self.set(&h_other_edge, false);
-                    return;
-                }
-                // Even if we weren't able to set one of the edges, we know that one of them is on
-                // so the next corner will be entered as well.
-                match self.node_from_node(&corner, hd, vd) {
-                    Some(c) => { self.apply_corner_entry(&c, hd, vd); },
-                    None => {
-                        // This shouldn't really happen, so it means there's a bug somewhere...
-                        panic!("This shouldn't happen");
-                    },
-                }
-            },
-            Some(3) => {
-                // Since we know that only one of the corner edges is on, we know that the two
-                // other edges must be on.
-                self.set(&h_other_edge, true);
-                self.set(&v_other_edge, true);
-            },
-            Some(4) => {
-                // Impossible
-                self.status = Status::Unsolvable;
-            },
-            _ => {
-                // Do nothing
-            },
-        };
-
-        // If there is only one other corner the path can exit the cell, then the path will enter
-        // the cell in that direction from that corner.
-        let mut count = 0;
-        let mut chosen_corner: Coordinate = Coordinate(0,0);
-        let mut chosen_hd: HDirection = HDirection::LEFT;
-        let mut chosen_vd: VDirection = VDirection::DOWN;
-        let can_be_set = |e: &Option<Edge>| {
-            return e.is_some() && !e.unwrap().is_off;
-        };
-        for h in [HDirection::RIGHT, HDirection::LEFT] {
-            for v in [VDirection::UP, VDirection::DOWN] {
-                if hd.eq(&h) || vd.eq(&v) {
-                    let corner = self.node_from_cell(&cell, &h, &v);
-                    let e1 = self.edge_from_node(&corner, &h.to_direction());
-                    let e2 = self.edge_from_node(&corner, &v.to_direction());
-                    if can_be_set(&e1) || can_be_set(&e2) {
-                        count += 1;
-                        chosen_corner = corner;
-                        chosen_hd = h;
-                        chosen_vd = v;
-                    }
-                }
-            }
-        }
-
-        if count == 0 {
-            // Impossible! Can't exit!
-            self.status = Status::Unsolvable;
-        } else if count == 1 {
-            // Must exit the cell through that corner.
-            self.apply_corner_entry(&chosen_corner, &chosen_hd, &chosen_vd);
-        } else {
-            // Can't infer anything...
-        }
-
+        self.enter_node(corner, hd, vd);
     }
 
     fn apply_unknown_corner_with_known_complement(&mut self, corner: &Coordinate) {
@@ -859,26 +640,26 @@ impl Solver {
             let is_on = |e: Option<Edge>| match e { Some(e) => e.is_on, None => false };
             let is_off = |e: Option<Edge>| match e { Some(e) => e.is_off, None => true };
 
-            for vd in [VDirection::UP, VDirection::DOWN] {
-                if is_on(self.edge_from_node(&corner, &vd.to_direction())) {
-                    for hd in [HDirection::RIGHT, HDirection::LEFT] {
-                        match self.cell_from_node(&corner, &hd.opposite(), &vd.opposite()) {
-                            Some(cell) => self.apply_corner_touch(&cell, &hd, &vd),
-                            None => {},
-                        };
-                    }
-                }
-            }
-            for hd in [HDirection::LEFT, HDirection::RIGHT] {
-                if is_on(self.edge_from_node(&corner, &hd.to_direction())) {
-                    for vd in [VDirection::UP, VDirection::DOWN] {
-                        match self.cell_from_node(&corner, &hd.opposite(), &vd.opposite()) {
-                            Some(cell) => self.apply_corner_touch(&cell, &hd, &vd),
-                            None => {},
-                        };
-                    }
-                }
-            }
+            // for vd in [VDirection::UP, VDirection::DOWN] {
+            //     if is_on(self.edge_from_node(&corner, &vd.to_direction())) {
+            //         for hd in [HDirection::RIGHT, HDirection::LEFT] {
+            //             match self.cell_from_node(&corner, &hd.opposite(), &vd.opposite()) {
+            //                 Some(cell) => self.apply_corner_touch(&cell, &hd, &vd),
+            //                 None => {},
+            //             };
+            //         }
+            //     }
+            // }
+            // for hd in [HDirection::LEFT, HDirection::RIGHT] {
+            //     if is_on(self.edge_from_node(&corner, &hd.to_direction())) {
+            //         for vd in [VDirection::UP, VDirection::DOWN] {
+            //             match self.cell_from_node(&corner, &hd.opposite(), &vd.opposite()) {
+            //                 Some(cell) => self.apply_corner_touch(&cell, &hd, &vd),
+            //                 None => {},
+            //             };
+            //         }
+            //     }
+            // }
 
             for hd in [HDirection::LEFT, HDirection::RIGHT] {
                 let e1 = self.edge_from_node(&corner, &hd.to_direction());
@@ -887,19 +668,22 @@ impl Solver {
                     if (is_on(e1) && is_off(e2)) || (is_off(e1) && is_on(e2)) {
                         self.apply_corner_entry(&corner, &hd.opposite(), &vd.opposite());
                     }
+                    if (is_on(e1) && is_on(e2)) || (is_off(e1) && is_off(e2)) {
+                        self.apply_no_corner_entry(&corner, &hd.opposite(), &vd.opposite());
+                    }
                 }
             }
 
-            self.apply_unknown_corner_with_known_complement(&corner);
-            for cell in self.cells_from_node(&corner) {
-                match cell {
-                    Some(x) => {
-                        self.apply_single_edge_remaining_in_corner_of_cell(&x);
-                        self.check_if_no_outgoing_corner(&x);
-                    },
-                    None => {},
-                }
-            }
+            // self.apply_unknown_corner_with_known_complement(&corner);
+            // for cell in self.cells_from_node(&corner) {
+            //     match cell {
+            //         Some(x) => {
+            //             self.apply_single_edge_remaining_in_corner_of_cell(&x);
+            //             self.check_if_no_outgoing_corner(&x);
+            //         },
+            //         None => {},
+            //     }
+            // }
         }
     }
 
@@ -948,6 +732,7 @@ impl Solver {
             // println!("After initial solve:\n{}", self.to_string());
         }
         self.change_flag = true;
+        self.reset_corner_data();
         while self.change_flag && self.status == Status::InProgress {
             self.change_flag = false;
             self.apply_local_single_loop_contraints();

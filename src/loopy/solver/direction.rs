@@ -1,6 +1,6 @@
 use std::slice::Iter;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Direction {
     UP,
     RIGHT,
@@ -36,7 +36,7 @@ impl Direction {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum HDirection {
     RIGHT,
     LEFT,
@@ -56,7 +56,7 @@ impl HDirection {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum VDirection {
     UP,
     DOWN,
