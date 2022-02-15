@@ -770,22 +770,22 @@ impl Solver {
         // Only bother doing the initial solve if no edges have been found yet.
         if self.paths.num_paths() == 0 {
             self.initial_solve();
-            println!("After initial solve:\n{}", self.to_string());
+            // println!("After initial solve:\n{}", self.to_string());
         }
         self.change_flag = true;
         while self.change_flag && self.status == Status::InProgress {
             self.change_flag = false;
             self.reset_corner_data();
             self.apply_local_single_loop_contraints();
-            println!("After single loop arguments:\n{}\n", self.to_string());
+            // println!("After single loop arguments:\n{}\n", self.to_string());
             self.apply_cell_constraints();
-            println!("After cell arguments:\n{}\n", self.to_string());
+            // println!("After cell arguments:\n{}\n", self.to_string());
             self.apply_corner_arguments();
-            println!("After corner arguments:\n{}\n", self.to_string());
+            // println!("After corner arguments:\n{}\n", self.to_string());
             self.apply_node_constraints();
-            println!("After node arguments:\n{}\n", self.to_string());
+            // println!("After node arguments:\n{}\n", self.to_string());
             self.outer_inner_border_argument();
-            println!("After border arguments:\n{}\n", self.to_string());
+            // println!("After border arguments:\n{}\n", self.to_string());
             if self.status == Status::InProgress && self.paths.has_loop() {
                 // If a loop has been made, then the puzzle is over.
                 if self.satisfies_contraints() {
@@ -809,7 +809,7 @@ impl Solver {
         self.non_recursive_solve();
         // println!("After non-recursive solve:\n{}\n", self.to_string());
         if self.status == Status::InProgress {
-            // solutions = self.depth_solve(depth, should_log);
+            solutions = self.depth_solve(depth, should_log);
         } else if self.status == Status::UniqueSolution {
             solutions.push(self.clone());
         }
