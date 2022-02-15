@@ -73,12 +73,31 @@ impl Solver {
         //  ┄ ┄ ┄ ┄
         // ┆·┆· ·┆·┆
         //  ┄ ┄ ┄ ┄
+        // NOTE: This rule has an exception!
+        // It's possible, although very rare, that the whole loop is just the boundery of those
+        // two 3s. But that won't be the case if there is at least one other hint that is a 2 or 3,
+        // or at least one other hint that is a non-adjacent 1.
+        let mut number_of_3s = 0;
+        let mut has_2 = false;
+        for i in 0..self.puzzle.size {
+            for j in 0..self.puzzle.size {
+                match self.puzzle.grid[i][j] {
+                    // TODO, detect non adjacent 1s,
+                    Some(2) => { has_2 = true; },
+                    Some(3) => { number_of_3s += 1; },
+                    _ => {}
+                }
+            }
+        }
+        let could_be_loop = number_of_3s <= 2 && !has_2;
         for i in 0..self.puzzle.size {
             for j in 0..self.puzzle.size {
                 if self.is_3(i, j) {
                     if self.is_3(i + 1, j) {
                         self.set(&self.h_edges[i][j].clone(), true);
-                        self.set(&self.h_edges[i + 1][j].clone(), true);
+                        if !could_be_loop {
+                            self.set(&self.h_edges[i + 1][j].clone(), true);
+                        }
                         self.set(&self.h_edges[i + 2][j].clone(), true);
                         if j > 0 {
                             self.set(&self.h_edges[i + 1][j - 1].clone(), false);
@@ -89,7 +108,9 @@ impl Solver {
                     }
                     if self.is_3(i, j + 1) {
                         self.set(&self.v_edges[i][j].clone(), true);
-                        self.set(&self.v_edges[i][j + 1].clone(), true);
+                        if !could_be_loop {
+                            self.set(&self.v_edges[i][j + 1].clone(), true);
+                        }
                         self.set(&self.v_edges[i][j + 2].clone(), true);
                         if i > 0 {
                             self.set(&self.v_edges[i - 1][j + 1].clone(), false);

@@ -358,8 +358,6 @@ impl Solver {
                         break;
                     }
                 }
-                println!("{:?}", intersection);
-                println!("{}", count);
                 if count > 2 {
                     for e in intersection.iter() {
                         self.set(&e, true);
