@@ -260,6 +260,10 @@ impl Solver {
         }
         if potential_exits.len() <= 1 {
             // If there is just one potential exit, then all the edges must be off.
+            // Unless the hint is a 4.
+            if hint.is_some() && hint.unwrap() == 4 {
+                return;
+            }
             self.set(&h_edge, false);
             self.set(&v_edge, false);
             self.set(&other_h_edge, false);
