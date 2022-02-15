@@ -220,22 +220,9 @@ impl Solver {
 
     pub fn outer_inner_border_argument(&mut self) {
         // This function only works if there are no dead ends.
-        let potential_degree = |c: &Coordinate| {
-            let mut count = 0;
-            for e in self.edges_from_node(c) {
-                if e.is_some() && !e.unwrap().is_off {
-                    count += 1;
-                }
-            }
-            return count;
-        };
         // If there are dead ends, return for now and let other inferences remove them first.
-        for row in 0..(self.puzzle.size + 1) {
-            for col in 0..(self.puzzle.size + 1) {
-                if potential_degree(&Coordinate(row, col)) == 1 {
-                    return;
-                }
-            }
+        if self.has_dead_end() {
+            return;
         }
         // Find any top most horizontal edge that isn't off yet.
         let mut e = self.h_edges[0][0];
@@ -250,9 +237,13 @@ impl Solver {
                 break;
             }
         }
+        // If all edges are off, then just return.
+        if e.is_off {
+            return;
+        }
         // Start by going right and whenever there is a fork, chose a clockwise turn over going
         // straight over a counter clocwise turn.
-        let is_available = |e: Option<Edge>| e.is_some() && !e.unwrap().is_off;
+        let is_available = |o: Option<Edge>| o.is_some() && !o.unwrap().is_off;
         let mut border:Vec<Edge> = Vec::new();
         let mut directions:Vec<Direction> = Vec::new();
         border.push(e);

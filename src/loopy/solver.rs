@@ -142,6 +142,28 @@ impl Solver {
         return self.is_cell_value(3, c);
     }
 
+    pub fn potential_degree(&self, c: &Coordinate) -> u8 {
+        let mut count = 0;
+        for e in self.edges_from_node(c) {
+            if e.is_some() && !e.unwrap().is_off {
+                count += 1;
+            }
+        }
+        return count;
+    }
+
+    pub fn has_dead_end(&self) -> bool {
+        for row in 0..(self.puzzle.size + 1) {
+            for col in 0..(self.puzzle.size + 1) {
+                if self.potential_degree(&Coordinate(row, col)) == 1 {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+
     fn set(& mut self, edge: &Edge, on: bool) {
         let nodes = self.nodes_from_edge(edge);
         let actual_edge = match edge.edge_type {
@@ -681,10 +703,10 @@ impl Solver {
                 for vd in [VDirection::UP, VDirection::DOWN] {
                     let e2 = self.edge_from_node(&corner, &vd.to_direction());
                     if (is_on(e1) && is_off(e2)) || (is_off(e1) && is_on(e2)) {
-                        self.enter_node(&corner, &hd.opposite(), &vd.opposite());
+                        self.enter_node(&corner, &hd, &vd);
                     }
                     if (is_on(e1) && is_on(e2)) || (is_off(e1) && is_off(e2)) {
-                        self.remove_entry_at_node(&corner, &hd.opposite(), &vd.opposite());
+                        self.remove_entry_at_node(&corner, &hd, &vd);
                     }
                 }
             }
@@ -744,18 +766,18 @@ impl Solver {
         // Only bother doing the initial solve if no edges have been found yet.
         if self.paths.num_paths() == 0 {
             self.initial_solve();
-            // println!("After initial solve:\n{}", self.to_string());
+            println!("After initial solve:\n{}", self.to_string());
         }
         self.change_flag = true;
         self.reset_corner_data();
         while self.change_flag && self.status == Status::InProgress {
             self.change_flag = false;
             self.apply_local_single_loop_contraints();
-            // println!("After single loop arguments:\n{}\n", self.to_string());
+            println!("After single loop arguments:\n{}\n", self.to_string());
             self.apply_cell_constraints();
-            // println!("After cell arguments:\n{}\n", self.to_string());
+            println!("After cell arguments:\n{}\n", self.to_string());
             self.apply_corner_arguments();
-            // println!("After corner arguments:\n{}\n", self.to_string());
+            println!("After corner arguments:\n{}\n", self.to_string());
             self.apply_node_constraints();
             println!("After node arguments:\n{}\n", self.to_string());
             self.outer_inner_border_argument();
