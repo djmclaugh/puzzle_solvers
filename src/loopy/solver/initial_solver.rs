@@ -3,6 +3,8 @@ use super::Status;
 
 use super::coordinate::Coordinate;
 use super::direction::Direction;
+use super::direction::HDirection;
+use super::direction::VDirection;
 
 // Easy and obvious solver methods that should be applied at the begining of every puzzle.
 impl Solver {
@@ -51,58 +53,11 @@ impl Solver {
     }
 
     fn corner_hint_analysis(&mut self) {
-        for hd in [Direction::RIGHT, Direction::LEFT] {
-            let col = if Direction::LEFT.eq(&hd) {0} else {self.puzzle.size - 1};
-            for vd in [Direction::UP, Direction::DOWN] {
-                let row = if Direction::UP.eq(&vd) {0} else {self.puzzle.size - 1};
-                let cell = Coordinate(row, col);
-                match self.puzzle.grid[row][col] {
-                    Some(1) => {
-                        // If 1 hint in a corner, then the "corner-most" edges must be off since
-                        // they are either both on (impossible) or both off.
-                        self.set(&self.edge_from_cell(&cell, &hd), false);
-                        self.set(&self.edge_from_cell(&cell, &vd), false);
-                    },
-                    Some(2) => {
-                        // If 2 hint in a corner, then the side edges coming out of the corner
-                        // cell's corners must be on.
-                        // For exmaple:
-                        //  ┄ ┄ ┄      ┄ ─ ┄
-                        // ┆2┆ ┆      ┆2┆ ┆
-                        //  ┄ ┄ ┄  ->  ┄ ┄ ┄
-                        // ┆ ┆ ┆      │ ┆ ┆
-                        //  ┄ ┄ ┄      ┄ ┄ ┄
-                        // ┆ ┆ ┆      ┆ ┆ ┆
-
-                        // Unwrap is safe since we are in an hd most cell and going in the
-                        // hd.opposite direction. And since we have a two hint we know the
-                        // dimensions of the puzzle is more than 1 by 1.
-                        let h_cell = self.cell_from_cell(&cell, &hd.opposite()).unwrap();
-                        self.set(&self.edge_from_cell(&h_cell, &vd), true);
-                        // Unwrap is safe here as well for similar reasons.
-                        let v_cell = self.cell_from_cell(&cell, &vd.opposite()).unwrap();
-                        self.set(&self.edge_from_cell(&v_cell, &hd), true);
-
-                        // If we have a 3 hint next to a corner 2 hint, then we know that the edge
-                        // of the 3 cell opposite to the 2 cell must be on.
-                        // TODO: Generalize this argument to work for non-corner cells.
-                        if self.is_cell_3(&h_cell) {
-                            self.set(&self.edge_from_cell(&h_cell, &hd.opposite()), true)
-                        }
-                        if self.is_cell_3(&v_cell) {
-                            self.set(&self.edge_from_cell(&v_cell, &vd.opposite()), true)
-                        }
-                    },
-                    Some(3) => {
-                        // If 3 hint in a corner, then the "corner-most" edges must be on since
-                        // they are either both on or both off (impossible).
-                        self.set(&self.edge_from_cell(&cell, &hd), true);
-                        self.set(&self.edge_from_cell(&cell, &vd), true);
-                    },
-                    // If no hint, no inferences can be made.
-                    // If 0 or 4 hint, no inference more than regular hint analysis can be made.
-                    _ => {},
-                }
+        for hd in [HDirection::LEFT, HDirection::RIGHT] {
+            let col = if HDirection::LEFT.eq(&hd) {0} else {self.puzzle.size};
+            for vd in [VDirection::UP, VDirection::DOWN] {
+                let row = if VDirection::UP.eq(&vd) {0} else {self.puzzle.size};
+                self.remove_entry_at_node(&Coordinate(row, col), &hd.opposite(), &vd.opposite());
             }
         }
     }

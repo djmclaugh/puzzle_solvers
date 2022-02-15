@@ -29,6 +29,8 @@ fn main() {
         ....2.1
     ");
 
+
+
     let mut s = loopy::solver::Solver::new(p);
     println!("START!");
     println!("{}", s.to_string());

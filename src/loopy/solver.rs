@@ -337,22 +337,22 @@ impl Solver {
                     // Top and right edges are on, so bottom left corner will be used as entry.
                     let hd = HDirection::LEFT;
                     let vd = VDirection::DOWN;
-                    self.apply_corner_entry(&self.node_from_cell(&cell, &hd, &vd), &hd, &vd);
+                    self.enter_node(&self.node_from_cell(&cell, &hd, &vd), &hd, &vd);
                 } else if edges[1].is_on && edges[2].is_on {
                     // Bottom and right edges are on, so top left corner will be used as entry.
                     let hd = HDirection::LEFT;
                     let vd = VDirection::UP;
-                    self.apply_corner_entry(&self.node_from_cell(&cell, &hd, &vd), &hd, &vd);
+                    self.enter_node(&self.node_from_cell(&cell, &hd, &vd), &hd, &vd);
                 } else if edges[2].is_on && edges[3].is_on {
                     // Bottom and left edges are on, so top right corner will be used as entry.
                     let hd = HDirection::RIGHT;
                     let vd = VDirection::UP;
-                    self.apply_corner_entry(&self.node_from_cell(&cell, &hd, &vd), &hd, &vd);
+                    self.enter_node(&self.node_from_cell(&cell, &hd, &vd), &hd, &vd);
                 } else if edges[3].is_on && edges[0].is_on {
                     // Top and left edges are on, so bottom right corner will be used as entry.
                     let hd = HDirection::RIGHT;
                     let vd = VDirection::DOWN;
-                    self.apply_corner_entry(&self.node_from_cell(&cell, &hd, &vd), &hd, &vd);
+                    self.enter_node(&self.node_from_cell(&cell, &hd, &vd), &hd, &vd);
                 }
             }
 
@@ -445,14 +445,6 @@ impl Solver {
         }
     }
 
-    fn apply_no_corner_entry(&mut self, corner: &Coordinate, hd: &HDirection, vd: &VDirection) {
-        self.remove_entry_at_node(corner, hd, vd);
-    }
-
-    fn apply_corner_entry(&mut self, corner: &Coordinate, hd: &HDirection, vd: &VDirection) {
-        self.enter_node(corner, hd, vd);
-    }
-
     fn apply_unknown_corner_with_known_complement(&mut self, corner: &Coordinate) {
         let mut unknown_count = 0;
         let mut on_count = 0;
@@ -504,9 +496,9 @@ impl Solver {
             return;
         }
         if on_count == 0 {
-            self.apply_no_corner_entry(corner, &hd, &vd);
+            self.remove_entry_at_node(corner, &hd, &vd);
         } else if on_count == 1 {
-            self.apply_corner_entry(corner, &hd, &vd);
+            self.enter_node(corner, &hd, &vd);
         }
     }
 
@@ -549,7 +541,7 @@ impl Solver {
         }
         // We know that exactly one of those edges will be on, so we know that corner will be
         // entered.
-        self.apply_corner_entry(&self.node_from_cell(cell, &hd, &vd), &hd, &vd);
+        self.enter_node(&self.node_from_cell(cell, &hd, &vd), &hd, &vd);
     }
 
     fn check_if_no_outgoing_corner(&mut self, cell: &Coordinate) {
@@ -666,10 +658,10 @@ impl Solver {
                 for vd in [VDirection::UP, VDirection::DOWN] {
                     let e2 = self.edge_from_node(&corner, &vd.to_direction());
                     if (is_on(e1) && is_off(e2)) || (is_off(e1) && is_on(e2)) {
-                        self.apply_corner_entry(&corner, &hd.opposite(), &vd.opposite());
+                        self.enter_node(&corner, &hd.opposite(), &vd.opposite());
                     }
                     if (is_on(e1) && is_on(e2)) || (is_off(e1) && is_off(e2)) {
-                        self.apply_no_corner_entry(&corner, &hd.opposite(), &vd.opposite());
+                        self.remove_entry_at_node(&corner, &hd.opposite(), &vd.opposite());
                     }
                 }
             }
@@ -768,7 +760,7 @@ impl Solver {
         self.non_recursive_solve();
         // println!("After non-recursive solve:\n{}\n", self.to_string());
         if self.status == Status::InProgress {
-            solutions = self.depth_solve(depth, should_log);
+            // solutions = self.depth_solve(depth, should_log);
         } else if self.status == Status::UniqueSolution {
             solutions.push(self.clone());
         }
