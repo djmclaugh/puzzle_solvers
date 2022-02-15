@@ -214,10 +214,6 @@ impl Solver {
                 if other_v_edge.is_on { self.set(&other_h_edge, true); }
                 if other_v_edge.is_off { self.set(&other_h_edge, false); }
 
-                self.remove_entry_at_node(&opp_corner, &hd.opposite(), &vd.opposite());
-                self.enter_node(&self.node_from_cell(cell, &hd.opposite(), vd), &hd.opposite(), vd);
-                self.enter_node(&self.node_from_cell(cell, hd, &vd.opposite()), hd, &vd.opposite());
-
                 // TODO: This argument could be generelized more. Basicly, if we know that we have
                 // a no entry at a corner, then we know that we have at most one edge one for the
                 // in the other diagonal.
@@ -245,8 +241,9 @@ impl Solver {
                     None => {},
                 }
 
-                return;
-
+                self.remove_entry_at_node(&opp_corner, &hd.opposite(), &vd.opposite());
+                self.enter_node(&self.node_from_cell(cell, &hd.opposite(), vd), &hd.opposite(), vd);
+                self.enter_node(&self.node_from_cell(cell, hd, &vd.opposite()), hd, &vd.opposite());
             }
             _ => {},
         }

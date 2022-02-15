@@ -622,6 +622,29 @@ impl Solver {
         // TODO: Consider using the endpoints of paths instead of recently changed values.
         // One problem with recently changed values is that a corner argument might only apply
         // once something happens far away.
+        // TODO: Endpoints are not enough!
+        // Consider
+        //  ┄ ┄ ┄
+        // ┆·┆2┆·┆
+        //    ┄ ┄
+        //  0 ·┆·┆
+        //    ┄ ┄
+        // The first pass of corner arguments will tell us that the 2 doesn't enter from the bottom
+        // and so must enter fromthe bottom right. But we can't really do anything with that just
+        // now.
+        // But if ever we deduce that
+        //  ┄ ┄ ┄
+        // ┆·┆2┆·┆
+        //    ┄ ─
+        //  0 ·┆·┆
+        //    ┄ ┄
+        // Then rechecking that the 2 doesn't enter from the bottom left tells us that the 2 must
+        // enter from the bottom right and that we must have
+        //  ┄ ┄ ┄
+        // ┆·┆2┆·┆
+        //    ┄ ─
+        //  0 · ·┆
+        //    ┄ ┄
         let corners: Vec<Coordinate> = self.recently_affected_corners.iter().cloned().collect();
         for corner in corners {
             if self.status != Status::InProgress {
