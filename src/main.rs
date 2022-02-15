@@ -19,28 +19,12 @@ fn main() {
     //     println!("Data written to loopy/loopy_{}.txt", n);
     // }
 
-// ........
-// .......3
-// ...1....
-// 12.....0
-// ....0.11
-// ...0....
-// .20....2
-// ..1.10..
-
-
     let p = loopy::puzzle::Puzzle::from_string(" \
-    ........
-    .......3
-    ...1....
-    12.....0
-    ....0.11
-    ...0....
-    .20....2
-    ..1.10..
+        .2.1
+        321.
+        1222
+        0..3
     ");
-
-
 
     let mut s = loopy::solver::Solver::new(p);
     println!("START!");

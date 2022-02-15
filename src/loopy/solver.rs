@@ -757,9 +757,9 @@ impl Solver {
             self.apply_corner_arguments();
             // println!("After corner arguments:\n{}\n", self.to_string());
             self.apply_node_constraints();
-            // println!("After node arguments:\n{}\n", self.to_string());
+            println!("After node arguments:\n{}\n", self.to_string());
             self.outer_inner_border_argument();
-            // println!("After border arguments:\n{}\n", self.to_string());
+            println!("After border arguments:\n{}\n", self.to_string());
             if self.status == Status::InProgress && self.paths.has_loop() {
                 // If a loop has been made, then the puzzle is over.
                 if self.satisfies_contraints() {

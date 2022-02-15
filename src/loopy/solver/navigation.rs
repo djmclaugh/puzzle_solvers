@@ -219,6 +219,24 @@ impl Solver {
     }
 
     pub fn outer_inner_border_argument(&mut self) {
+        // This function only works if there are no dead ends.
+        let potential_degree = |c: &Coordinate| {
+            let mut count = 0;
+            for e in self.edges_from_node(c) {
+                if e.is_some() && !e.unwrap().is_off {
+                    count += 1;
+                }
+            }
+            return count;
+        };
+        // If there are dead ends, return for now and let other inferences remove them first.
+        for row in 0..(self.puzzle.size + 1) {
+            for col in 0..(self.puzzle.size + 1) {
+                if potential_degree(&Coordinate(row, col)) == 1 {
+                    return;
+                }
+            }
+        }
         // Find any top most horizontal edge that isn't off yet.
         let mut e = self.h_edges[0][0];
         for row in 0..(self.puzzle.size + 1) {
@@ -251,9 +269,8 @@ impl Solver {
             next_e = self.edge_from_node(&n, &d.counter_clockwise()).unwrap();
             d = d.counter_clockwise();
         } else {
-            // Edge with dead end found.
-            // Return for now and let other inference rules get rid of that edge.
-            return;
+            // This should never happen.
+            panic!("Edge with dead end found.");
         }
         while !next_e.eq(&border[0]) {
             border.push(next_e);
@@ -269,9 +286,8 @@ impl Solver {
                 next_e = self.edge_from_node(&n, &d.counter_clockwise()).unwrap();
                 d = d.counter_clockwise();
             } else {
-                // Edge with dead end found.
-                // Return for now and let other inference rules get rid of that edge.
-                return;
+                // This should never happen.
+                panic!("Edge with dead end found.");
             }
         }
 
@@ -331,9 +347,8 @@ impl Solver {
                     inner_e = self.edge_from_node(&inner_n, &inner_d.clockwise()).unwrap();
                     inner_d = inner_d.clockwise();
                 } else {
-                    // Edge with dead end found.
-                    // Return for now and let other inference rules get rid of that edge.
-                    return;
+                    // This should never happen.
+                    panic!("Edge with dead end found.");
                 }
             }
             if has_been_out_again && has_at_least_one_non_set_intersection {
