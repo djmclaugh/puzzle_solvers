@@ -246,9 +246,9 @@ impl Solver {
                 } else {
                     // There's a chance that this is the last edge missing.
                     // Try setting the edge and see if the contraints are satisfied.
-                    let mut copy = self.clone();
-                    copy.set(&edge, true);
-                    self.set(&edge, copy.satisfies_contraints());
+                    // let mut copy = self.clone();
+                    // copy.set(&edge, true);
+                    // self.set(&edge, copy.satisfies_contraints());
                 }
             }
         }
@@ -703,10 +703,14 @@ impl Solver {
                 for vd in [VDirection::UP, VDirection::DOWN] {
                     let e2 = self.edge_from_node(&corner, &vd.to_direction());
                     if (is_on(e1) && is_off(e2)) || (is_off(e1) && is_on(e2)) {
-                        self.enter_node(&corner, &hd, &vd);
+                        println!("Enter {:?} {:?} {:?}", corner, hd.opposite(), vd.opposite());
+                        self.enter_node(&corner, &hd.opposite(), &vd.opposite());
+                        println!("{}\n", self.to_string());
                     }
                     if (is_on(e1) && is_on(e2)) || (is_off(e1) && is_off(e2)) {
-                        self.remove_entry_at_node(&corner, &hd, &vd);
+                        println!("Remove {:?} {:?} {:?}", corner, hd.opposite(), vd.opposite());
+                        self.remove_entry_at_node(&corner, &hd.opposite(), &vd.opposite());
+                        println!("{}\n", self.to_string());
                     }
                 }
             }
@@ -769,9 +773,9 @@ impl Solver {
             println!("After initial solve:\n{}", self.to_string());
         }
         self.change_flag = true;
-        self.reset_corner_data();
         while self.change_flag && self.status == Status::InProgress {
             self.change_flag = false;
+            self.reset_corner_data();
             self.apply_local_single_loop_contraints();
             println!("After single loop arguments:\n{}\n", self.to_string());
             self.apply_cell_constraints();

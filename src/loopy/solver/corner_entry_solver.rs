@@ -248,40 +248,41 @@ impl Solver {
             _ => {},
         }
 
-        let mut potential_exits: Vec<(HDirection, VDirection)> = Vec::new();
-        for h in [HDirection::RIGHT, HDirection::LEFT] {
-            for v in [VDirection::UP, VDirection::DOWN] {
-                if !hd.eq(&h) || !vd.eq(&v) {
-                    if !self.get_entry_status(cell, &h, &v).eq(&EntryStatus::NotEntryForSure) {
-                        potential_exits.push((h.clone(), v.clone()));
+        // The following inferences only work if there is at least one on edge outside this cell.
+        // TODO: Could probably find a more general condition, but this case is really rare.
+        if self.paths.num_paths() >= 2 {
+            let mut potential_exits: Vec<(HDirection, VDirection)> = Vec::new();
+            for h in [HDirection::RIGHT, HDirection::LEFT] {
+                for v in [VDirection::UP, VDirection::DOWN] {
+                    if !hd.eq(&h) || !vd.eq(&v) {
+                        if !self.get_entry_status(cell, &h, &v).eq(&EntryStatus::NotEntryForSure) {
+                            potential_exits.push((h.clone(), v.clone()));
+                        }
                     }
                 }
             }
-        }
-        if potential_exits.len() <= 1 {
-            // If there is just one potential exit, then all the edges must be off.
-            // Unless the hint is a 4.
-            if hint.is_some() && hint.unwrap() == 4 {
-                return;
+            if potential_exits.len() <= 1 {
+                // If there is just one potential exit, then all the edges must be off.
+                self.set(&h_edge, false);
+                self.set(&v_edge, false);
+                self.set(&other_h_edge, false);
+                self.set(&other_v_edge, false);
             }
-            self.set(&h_edge, false);
-            self.set(&v_edge, false);
-            self.set(&other_h_edge, false);
-            self.set(&other_v_edge, false);
-        }
 
-        if potential_exits.len() == 2 {
-            // If there is at least one on edge, then these two exits must be exits.
-            if h_edge.is_on || v_edge.is_on || other_h_edge.is_on || other_v_edge.is_on {
-                let exit_h_1 = potential_exits[0].0;
-                let exit_v_1 = potential_exits[0].1;
-                let exit_corner_1 = self.node_from_cell(cell, &exit_h_1, &exit_v_1);
-                self.enter_node(&exit_corner_1, &exit_h_1, &exit_v_1);
+            if potential_exits.len() == 2 {
+                // If there is at least one on edge, then these two exits must be exits.
+                // OR, it could be the
+                if h_edge.is_on || v_edge.is_on || other_h_edge.is_on || other_v_edge.is_on {
+                    let exit_h_1 = potential_exits[0].0;
+                    let exit_v_1 = potential_exits[0].1;
+                    let exit_corner_1 = self.node_from_cell(cell, &exit_h_1, &exit_v_1);
+                    self.enter_node(&exit_corner_1, &exit_h_1, &exit_v_1);
 
-                let exit_h_2 = potential_exits[1].0;
-                let exit_v_2 = potential_exits[1].1;
-                let exit_corner_2 = self.node_from_cell(cell, &exit_h_2, &exit_v_2);
-                self.enter_node(&exit_corner_2, &exit_h_2, &exit_v_2);
+                    let exit_h_2 = potential_exits[1].0;
+                    let exit_v_2 = potential_exits[1].1;
+                    let exit_corner_2 = self.node_from_cell(cell, &exit_h_2, &exit_v_2);
+                    self.enter_node(&exit_corner_2, &exit_h_2, &exit_v_2);
+                }
             }
         }
     }

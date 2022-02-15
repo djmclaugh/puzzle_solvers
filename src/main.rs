@@ -21,8 +21,8 @@ fn main() {
 
     let p = loopy::puzzle::Puzzle::from_string(" \
         ...
-        110
-        33.
+        0..
+        01.
     ");
 
     let mut s = loopy::solver::Solver::new(p);
