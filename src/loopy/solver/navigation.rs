@@ -282,7 +282,19 @@ impl Solver {
             }
         }
 
-        let border_edges: HashSet<Edge> = HashSet::from_iter(border.iter().cloned());
+
+        let mut border_edges: HashSet<Edge> = HashSet::new();
+        for border_edge in border.iter() {
+            if border_edges.contains(border_edge) {
+                // If an edge appear twice on the border, then that edge is a bridge.
+                // That edge must be therefore be off.
+                self.set(border_edge, false);
+                return;
+                // TODO: We could also conclude that if one of the connected components has at
+                // least one edge, then all of the other connected component must be off.
+            }
+            border_edges.insert(border_edge.clone());
+        }
 
         for i in 0..border.len() {
             let mut intersection: Vec<Edge> = Vec::new();

@@ -69,6 +69,12 @@
 // .20....2
 // ..1.10..
 
+// ...01.
+// 10.22.
+// .2220.
+// 1..1..
+// ..233.
+// ......
 
 // https://www.reddit.com/r/slitherlink/comments/n1r7ja/just_created_this_slitherlink_puzzle_try_it_out/
 // ..2..

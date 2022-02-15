@@ -703,14 +703,14 @@ impl Solver {
                 for vd in [VDirection::UP, VDirection::DOWN] {
                     let e2 = self.edge_from_node(&corner, &vd.to_direction());
                     if (is_on(e1) && is_off(e2)) || (is_off(e1) && is_on(e2)) {
-                        println!("Enter {:?} {:?} {:?}", corner, hd.opposite(), vd.opposite());
+                        // println!("Enter {:?} {:?} {:?}", corner, hd.opposite(), vd.opposite());
                         self.enter_node(&corner, &hd.opposite(), &vd.opposite());
-                        println!("{}\n", self.to_string());
+                        // println!("{}\n", self.to_string());
                     }
                     if (is_on(e1) && is_on(e2)) || (is_off(e1) && is_off(e2)) {
-                        println!("Remove {:?} {:?} {:?}", corner, hd.opposite(), vd.opposite());
+                        // println!("Remove {:?} {:?} {:?}", corner, hd.opposite(), vd.opposite());
                         self.remove_entry_at_node(&corner, &hd.opposite(), &vd.opposite());
-                        println!("{}\n", self.to_string());
+                        // println!("{}\n", self.to_string());
                     }
                 }
             }
