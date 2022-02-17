@@ -14,6 +14,7 @@ use direction::HDirection;
 use direction::VDirection;
 use edge::Edge;
 use edge::EdgeType;
+use inside_tracker::InsideTracker;
 use path_tracker::PathTracker;
 use super::puzzle::Puzzle;
 
@@ -50,6 +51,7 @@ pub struct Solver {
     paths_endpoints_to_check: HashSet<(Coordinate, Coordinate)>,
     corner_solver_data: corner_entry_solver::CornerSolverData,
     paths: PathTracker,
+    inside_tracker: InsideTracker,
     change_flag: bool,
     can_be_single_cell: bool,
     num_off: usize,
@@ -112,6 +114,7 @@ impl Solver {
             h_edges,
             v_edges,
             corner_solver_data: corner_entry_solver::CornerSolverData::new(),
+            inside_tracker: InsideTracker::new(n),
             paths: PathTracker::new(),
             num_off: 0,
             can_be_single_cell: true,
@@ -163,7 +166,6 @@ impl Solver {
         return false;
     }
 
-
     fn set(& mut self, edge: &Edge, on: bool) {
         let nodes = self.nodes_from_edge(edge);
         let actual_edge = match edge.edge_type {
@@ -193,6 +195,7 @@ impl Solver {
         }
         if has_changed {
             self.change_flag = true;
+            self.inside_tracker.add_edge_info(&actual_edge);
             let new_cells = self.cells_from_edge(edge);
             for cell in new_cells {
                 match cell {
@@ -208,6 +211,16 @@ impl Solver {
                         // Do nothing,
                     }
                 }
+            }
+            if self.inside_tracker.found_contradiction {
+                self.status = Status::Unsolvable;
+            }
+            for c in self.inside_tracker.get_neighbours_to_check() {
+                self.recently_affected_cells.insert(c);
+            }
+            let inferences = self.inside_tracker.get_inferences();
+            for e in inferences {
+                self.set(&e, e.is_on);
             }
         }
     }
@@ -425,6 +438,16 @@ impl Solver {
                         }
                     }
                 }
+            }
+
+            if hint == 1 {
+                self.inside_tracker.if_stuck_between_similar_make_similar(&cell);
+            } else if hint == 3 {
+                self.inside_tracker.if_stuck_between_similar_make_different(&cell);
+            }
+            let inferences = self.inside_tracker.get_inferences();
+            for e in inferences {
+                self.set(&e, e.is_on);
             }
         }
     }
@@ -677,26 +700,26 @@ impl Solver {
             let is_on = |e: Option<Edge>| match e { Some(e) => e.is_on, None => false };
             let is_off = |e: Option<Edge>| match e { Some(e) => e.is_off, None => true };
 
-            // for vd in [VDirection::UP, VDirection::DOWN] {
-            //     if is_on(self.edge_from_node(&corner, &vd.to_direction())) {
-            //         for hd in [HDirection::RIGHT, HDirection::LEFT] {
-            //             match self.cell_from_node(&corner, &hd.opposite(), &vd.opposite()) {
-            //                 Some(cell) => self.apply_corner_touch(&cell, &hd, &vd),
-            //                 None => {},
-            //             };
-            //         }
-            //     }
-            // }
-            // for hd in [HDirection::LEFT, HDirection::RIGHT] {
-            //     if is_on(self.edge_from_node(&corner, &hd.to_direction())) {
-            //         for vd in [VDirection::UP, VDirection::DOWN] {
-            //             match self.cell_from_node(&corner, &hd.opposite(), &vd.opposite()) {
-            //                 Some(cell) => self.apply_corner_touch(&cell, &hd, &vd),
-            //                 None => {},
-            //             };
-            //         }
-            //     }
-            // }
+            for vd in [VDirection::UP, VDirection::DOWN] {
+                if is_on(self.edge_from_node(&corner, &vd.to_direction())) {
+                    for hd in [HDirection::RIGHT, HDirection::LEFT] {
+                        match self.cell_from_node(&corner, &hd.opposite(), &vd.opposite()) {
+                            Some(cell) => self.apply_corner_touch(&cell, &hd, &vd),
+                            None => {},
+                        };
+                    }
+                }
+            }
+            for hd in [HDirection::LEFT, HDirection::RIGHT] {
+                if is_on(self.edge_from_node(&corner, &hd.to_direction())) {
+                    for vd in [VDirection::UP, VDirection::DOWN] {
+                        match self.cell_from_node(&corner, &hd.opposite(), &vd.opposite()) {
+                            Some(cell) => self.apply_corner_touch(&cell, &hd, &vd),
+                            None => {},
+                        };
+                    }
+                }
+            }
 
             for hd in [HDirection::LEFT, HDirection::RIGHT] {
                 let e1 = self.edge_from_node(&corner, &hd.to_direction());
@@ -715,16 +738,16 @@ impl Solver {
                 }
             }
 
-            // self.apply_unknown_corner_with_known_complement(&corner);
-            // for cell in self.cells_from_node(&corner) {
-            //     match cell {
-            //         Some(x) => {
-            //             self.apply_single_edge_remaining_in_corner_of_cell(&x);
-            //             self.check_if_no_outgoing_corner(&x);
-            //         },
-            //         None => {},
-            //     }
-            // }
+            self.apply_unknown_corner_with_known_complement(&corner);
+            for cell in self.cells_from_node(&corner) {
+                match cell {
+                    Some(x) => {
+                        self.apply_single_edge_remaining_in_corner_of_cell(&x);
+                        self.check_if_no_outgoing_corner(&x);
+                    },
+                    None => {},
+                }
+            }
         }
     }
 
@@ -765,6 +788,12 @@ impl Solver {
         return true;
     }
 
+    fn check_if_connected(&mut self) {
+        if !self.all_in_same_connect_component(self.paths.get_endpoints()) {
+            self.status = Status::Unsolvable;
+        }
+    }
+
     // Solve the puzzle using all non-recursive ways we know of.
     pub fn non_recursive_solve(&mut self) {
         // Only bother doing the initial solve if no edges have been found yet.
@@ -786,6 +815,7 @@ impl Solver {
             // println!("After node arguments:\n{}\n", self.to_string());
             self.outer_inner_border_argument();
             // println!("After border arguments:\n{}\n", self.to_string());
+            self.check_if_connected();
             if self.status == Status::InProgress && self.paths.has_loop() {
                 // If a loop has been made, then the puzzle is over.
                 if self.satisfies_contraints() {
@@ -809,7 +839,7 @@ impl Solver {
         self.non_recursive_solve();
         // println!("After non-recursive solve:\n{}\n", self.to_string());
         if self.status == Status::InProgress {
-            solutions = self.depth_solve(depth, should_log);
+            // solutions = self.depth_solve(depth, should_log);
         } else if self.status == Status::UniqueSolution {
             solutions.push(self.clone());
         }

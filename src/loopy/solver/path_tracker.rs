@@ -1,5 +1,6 @@
 use super::coordinate::Coordinate;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 #[derive(Clone, Debug)]
 pub struct PathTracker {
@@ -21,6 +22,10 @@ impl PathTracker {
 
     pub fn has_loop(&self) -> bool {
         return self.num_loops > 0;
+    }
+
+    pub fn get_endpoints(&self) -> HashSet<Coordinate> {
+        return self.endpoints.keys().cloned().collect();
     }
 
     pub fn would_create_loop(&mut self, c1: &Coordinate, c2: &Coordinate) -> bool {

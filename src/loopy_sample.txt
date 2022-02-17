@@ -76,6 +76,16 @@
 // ..233.
 // ......
 
+// 02......1
+// ..1......
+// ....1.2..
+// ......1.2
+// ....2...3
+// .........
+// ..20....0
+// .12...3..
+// ...1.1.1.
+
 // https://www.reddit.com/r/slitherlink/comments/n1r7ja/just_created_this_slitherlink_puzzle_try_it_out/
 // ..2..
 // ...22
