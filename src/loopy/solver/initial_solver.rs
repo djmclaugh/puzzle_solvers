@@ -157,10 +157,38 @@ impl Solver {
         }
     }
 
+    // TODO: Figure out how to generalize this argument
+    pub fn handle_3_next_to_1_on_edge(&mut self) {
+        let n = self.puzzle.size;
+        for i in 1..(self.puzzle.size - 1) {
+            if self.is_3(i, 0) {
+                if self.is_1(i - 1, 0) || self.is_1(i + 1, 0) {
+                    self.set(&self.v_edges[i][0].clone(), true);
+                }
+            }
+            if self.is_3(i, n - 1) {
+                if self.is_1(i - 1, n - 1) || self.is_1(i + 1, n - 1) {
+                    self.set(&self.v_edges[i][n].clone(), true);
+                }
+            }
+            if self.is_3(0, i) {
+                if self.is_1(0, i - 1) || self.is_1(0, i + 1) {
+                    self.set(&self.h_edges[0][i].clone(), true);
+                }
+            }
+            if self.is_3(n - 1, i) {
+                if self.is_1(n - 1, i - 1) || self.is_1(n - 1, i + 1) {
+                    self.set(&self.h_edges[n][i].clone(), true);
+                }
+            }
+        }
+    }
+
     pub fn initial_solve(&mut self) {
         self.hint_analysis();
         self.corner_hint_analysis();
         self.handle_adjacent_3();
         self.handle_diagonal_3();
+        self.handle_3_next_to_1_on_edge()
     }
 }

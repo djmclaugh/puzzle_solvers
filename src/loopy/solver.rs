@@ -131,6 +131,9 @@ impl Solver {
     fn is_value(&self, v: u8, i:usize, j:usize) -> bool {
         return self.puzzle.is_value(v, i, j);
     }
+    fn is_1(&self, i:usize, j:usize) -> bool {
+        return self.is_value(1, i, j);
+    }
     fn is_2(&self, i:usize, j:usize) -> bool {
         return self.is_value(2, i, j);
     }
@@ -800,6 +803,7 @@ impl Solver {
         if self.paths.num_paths() == 0 {
             self.initial_solve();
             // println!("After initial solve:\n{}", self.to_string());
+            // println!("{}\n", self.inside_tracker.to_string());
         }
         self.change_flag = true;
         while self.change_flag && self.status == Status::InProgress {
@@ -807,15 +811,39 @@ impl Solver {
             self.reset_corner_data();
             self.apply_local_single_loop_contraints();
             // println!("After single loop arguments:\n{}\n", self.to_string());
+            // println!("{}\n", self.inside_tracker.to_string());
             self.apply_cell_constraints();
             // println!("After cell arguments:\n{}\n", self.to_string());
+            // println!("{}\n", self.inside_tracker.to_string());
             self.apply_corner_arguments();
             // println!("After corner arguments:\n{}\n", self.to_string());
+            // println!("{}\n", self.inside_tracker.to_string());
             self.apply_node_constraints();
             // println!("After node arguments:\n{}\n", self.to_string());
+            // println!("{}\n", self.inside_tracker.to_string());
             self.outer_inner_border_argument();
             // println!("After border arguments:\n{}\n", self.to_string());
+            // println!("{}\n", self.inside_tracker.to_string());
             self.check_if_connected();
+            if self.status == Status::InProgress && !self.change_flag {
+                self.inside_tracker.apply_insides_must_be_connected_arguments();
+                let inferences = self.inside_tracker.get_inferences();
+                for e in inferences {
+                    self.set(&e, e.is_on);
+                }
+                // println!("After inside must be connected arguments:\n{}\n", self.to_string());
+                // println!("{}\n", self.inside_tracker.to_string());
+            }
+            if self.status == Status::InProgress && !self.change_flag {
+                // Check the corners again just to be sure.
+                // TODO: Figure out why this is needed sometimes.
+                for endpoint in self.paths.get_endpoints() {
+                    self.recently_affected_corners.insert(endpoint);
+                }
+                self.apply_corner_arguments();
+                // println!("After corner arguments (again):\n{}\n", self.to_string());
+                // println!("{}\n", self.inside_tracker.to_string());
+            }
             if self.status == Status::InProgress && self.paths.has_loop() {
                 // If a loop has been made, then the puzzle is over.
                 if self.satisfies_contraints() {
@@ -839,7 +867,7 @@ impl Solver {
         self.non_recursive_solve();
         // println!("After non-recursive solve:\n{}\n", self.to_string());
         if self.status == Status::InProgress {
-            // solutions = self.depth_solve(depth, should_log);
+            solutions = self.depth_solve(depth, should_log);
         } else if self.status == Status::UniqueSolution {
             solutions.push(self.clone());
         }
@@ -852,6 +880,7 @@ impl Solver {
             println!("{}Status: {:?}", indent, self.status);
             println!("{}Depth: {:?}", indent, depth);
             println!("{}Solutions #: {}", indent, solutions.len());
+            // println!("{}\n", self.inside_tracker.to_string());
         }
 
         return solutions;

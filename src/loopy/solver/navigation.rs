@@ -409,22 +409,28 @@ impl Solver {
     }
 
     pub fn all_in_same_connect_component(&self, mut nodes: HashSet<Coordinate>) -> bool {
+        if nodes.is_empty() {
+            // Vacuously true
+            return true;
+        }
         let mut component: HashSet<Coordinate> = HashSet::new();
         let mut newly_added: Vec<Coordinate> = Vec::new();
-        newly_added.push(nodes.iter().next().unwrap().clone());
+        let first = nodes.iter().next().unwrap();
+        newly_added.push(first.clone());
+        component.insert(first.clone());
         while !newly_added.is_empty() {
             let n = newly_added.pop().unwrap();
             nodes.remove(&n);
             if nodes.is_empty() {
                 return true;
             }
-            component.insert(n.clone());
             for edge in self.edges_from_node(&n) {
                 match edge {
                     Some(e) => {
                         if !e.is_off {
                             let other = e.other_node(&n);
                             if !component.contains(&other) {
+                                component.insert(other.clone());
                                 newly_added.push(other);
                             }
                         }

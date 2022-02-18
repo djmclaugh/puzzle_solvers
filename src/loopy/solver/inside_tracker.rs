@@ -4,6 +4,8 @@ use super::edge::Edge;
 use super::edge::EdgeType;
 
 use std::collections::HashSet;
+use std::collections::VecDeque;
+
 
 #[derive(Clone, Debug)]
 pub struct InsideInfo {
@@ -19,6 +21,8 @@ pub struct InsideInfo {
 pub struct InsideTracker {
     size: usize,
     data: Vec<Vec<InsideInfo>>,
+    inside_cells: HashSet<Coordinate>,
+    outside_cells: HashSet<Coordinate>,
     newly_set_cells: Vec<Coordinate>,
     pub found_contradiction: bool,
 }
@@ -44,11 +48,39 @@ impl InsideTracker {
         return InsideTracker{
             size,
             data,
+            inside_cells: HashSet::new(),
+            outside_cells: HashSet::new(),
             newly_set_cells: Vec::new(),
             found_contradiction: false};
     }
 
-    pub fn get_neighbours_to_check(& self) -> HashSet<Coordinate> {
+    pub fn to_string(&self) -> String {
+        let n = self.size;
+        let mut rows: Vec<String> = Vec::new();
+
+        for i in 0..n {
+            let mut row = Vec::new();
+            for j in 0..n {
+                let mut symbol = "?";
+                if self.data[i][j].is_inside {
+                    symbol = "·";
+                }
+                if self.data[i][j].is_outside {
+                    symbol = " ";
+                }
+                if self.data[i][j].is_inside && self.data[i][j].is_outside{
+                    symbol = "!";
+                }
+                row.push(String::from(symbol));
+            }
+            rows.push(row.join(""));
+        }
+
+        // Join and return rows.
+        return rows.join("\n");
+    }
+
+    pub fn get_neighbours_to_check(&self) -> HashSet<Coordinate> {
         let mut result: HashSet<Coordinate> = HashSet::new();
         for c in self.newly_set_cells.clone() {
             if c.0 > 0 {
@@ -152,9 +184,11 @@ impl InsideTracker {
         let mut is_new_information = false;
         if inside && !self.data[c.0][c.1].is_inside {
             self.data[c.0][c.1].is_inside = true;
+            self.inside_cells.insert(c.clone());
             is_new_information = true;
         } else if !inside && !self.data[c.0][c.1].is_outside {
             self.data[c.0][c.1].is_outside = true;
+            self.outside_cells.insert(c.clone());
             is_new_information = true;
         }
         if self.data[c.0][c.1].is_inside && self.data[c.0][c.1].is_outside {
@@ -310,6 +344,112 @@ impl InsideTracker {
         if self.are_same(&left, &right) {
             self.make_cells_different(c, &left);
             self.make_cells_different(c, &right);
+        }
+    }
+
+    pub fn non_outside_neighbours(&self, c: &Coordinate) -> HashSet<Coordinate> {
+        let mut result: HashSet<Coordinate> = HashSet::new();
+        let mut n: Coordinate;
+        n = Coordinate(c.0.wrapping_sub(1), c.1);
+        if !self.is_outside(&n) { result.insert(n); }
+        n = Coordinate(c.0 + 1, c.1);
+        if !self.is_outside(&n) { result.insert(n); }
+        n = Coordinate(c.0, c.1.wrapping_sub(1));
+        if !self.is_outside(&n) { result.insert(n); }
+        n = Coordinate(c.0, c.1 + 1);
+        if !self.is_outside(&n) { result.insert(n); }
+        return result;
+    }
+
+    fn is_inside_connected_without(& self, c: &Coordinate) -> bool {
+        if self.inside_cells.is_empty() {
+            // Vacuously true
+            return true;
+        }
+        let mut component: HashSet<Coordinate> = HashSet::new();
+        let mut new_nodes: Vec<Coordinate> = Vec::new();
+        let first = self.inside_cells.iter().next().unwrap();
+        component.insert(first.clone());
+        new_nodes.push(first.clone());
+        while !new_nodes.is_empty() {
+            let new_node = new_nodes.pop().unwrap();
+            for neighbour in self.non_outside_neighbours(&new_node) {
+                if !neighbour.eq(&c) && !component.contains(&neighbour) {
+                    component.insert(neighbour.clone());
+                    new_nodes.push(neighbour.clone());
+                }
+            }
+        }
+        for node in self.inside_cells.iter() {
+            if !component.contains(&node) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    pub fn apply_insides_must_be_connected_arguments(&mut self) {
+        if self.inside_cells.is_empty() {
+            // Vacuously true, nothing to do
+            return;
+        }
+        // Modified depth first search to also find articulation points
+        // https://www.geeksforgeeks.org/articulation-points-or-cut-vertices-in-a-graph/
+        // (discovery step, parent, earliest_loopback)
+        let mut traversal_info: HashMap<Coordinate, (usize, Option<Coordinate>, usize)> = HashMap::new();
+        // (node, parent)
+        let mut new_nodes: Vec<(Coordinate, Option<Coordinate>)> = Vec::new();
+        let mut count = 1;
+        let first = self.inside_cells.iter().next().unwrap();
+        new_nodes.push((first.clone(), Option::None));
+        while !new_nodes.is_empty() {
+            let (node, parent) = new_nodes.pop().unwrap();
+            if traversal_info.contains_key(&node) {
+                let loopback = traversal_info.get(&node).unwrap().0;
+                let mut p = parent;
+                while p.is_some() {
+                    let p_info = traversal_info.get(&p.unwrap()).unwrap().clone();
+                    if p_info.2 > loopback {
+                        traversal_info.insert(p.unwrap(), (p_info.0, p_info.1, loopback));
+                        p = p_info.1;
+                    } else {
+                        break;
+                    }
+                }
+            } else {
+                traversal_info.insert(node, (count, parent.clone(), count));
+                count += 1;
+                for neighbour in self.non_outside_neighbours(&node) {
+                    new_nodes.push((neighbour.clone(), Option::Some(node.clone())));
+                }
+            }
+        }
+        let mut articulation_points:HashSet<Coordinate> = HashSet::new();
+        let mut first_as_parent_count = 0;
+        for (_key, value) in &traversal_info {
+            if value.1.is_some() {
+                let parent = value.1.unwrap();
+                if parent.eq(&first) {
+                    first_as_parent_count += 1;
+                } else {
+                    let parent_position = traversal_info.get(&parent).unwrap().0;
+                    if parent_position == value.2 && self.non_outside_neighbours(&parent).len() > 1 {
+                        articulation_points.insert(parent.clone());
+                    }
+                }
+            }
+        }
+        if first_as_parent_count > 1 {
+            articulation_points.insert(first.clone());
+        }
+
+        // Look at each articulation point. If it's not set yet and setting it to outside would
+        // make it imposible to make a single connected component for the inside cells, then it
+        // must be set to inside.
+        for p in articulation_points {
+            if !self.data[p.0][p.1].is_inside && !self.is_inside_connected_without(&p) {
+                self.mark_cell(&p, true);
+            }
         }
     }
 }
