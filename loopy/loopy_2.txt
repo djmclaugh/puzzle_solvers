@@ -1,6 +1,78 @@
 Difficulty: 0
-2.
-2.
+..
+33
+-----
+Difficulty: 0
+1.
+1.
+-----
+Difficulty: 0
+.2
+.2
+-----
+Difficulty: 0
+.2
+.2
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 0
+.3
+.3
+-----
+Difficulty: 1
+.0
+..
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 1
+.0
+..
+-----
+Difficulty: 1
+..
+0.
+-----
+Difficulty: 0
+31
+..
+-----
+Difficulty: 1
+..
+0.
+-----
+Difficulty: 1
+..
+.0
+-----
+Difficulty: 0
+1.
+3.
+-----
+Difficulty: 0
+.3
+.1
+-----
+Difficulty: 0
+3.
+1.
+-----
+Difficulty: 0
+..
+31
+-----
+Difficulty: 0
+..
+11
 -----
 Difficulty: 1
 ..
@@ -12,63 +84,39 @@ Difficulty: 1
 -----
 Difficulty: 0
 ..
+22
+-----
+Difficulty: 1
+..
+.0
+-----
+Difficulty: 1
+..
+.0
+-----
+Difficulty: 0
 31
+..
 -----
-Difficulty: 0
-.1
-.1
------
-Difficulty: 0
-22
+Difficulty: 1
+0.
 ..
 -----
 Difficulty: 0
 .1
 .1
 -----
-Difficulty: 0
+Difficulty: 1
+.0
 ..
-31
+-----
+Difficulty: 1
+0.
+..
 -----
 Difficulty: 1
 ..
-.0
------
-Difficulty: 1
-..
-.0
------
-Difficulty: 0
-33
-..
------
-Difficulty: 0
-1.
-1.
------
-Difficulty: 1
-..
-.0
------
-Difficulty: 0
-..
-22
------
-Difficulty: 0
-..
-22
------
-Difficulty: 0
-..
-33
------
-Difficulty: 0
-22
-..
------
-Difficulty: 0
-..
-11
+0.
 -----
 Difficulty: 1
 0.
@@ -83,52 +131,40 @@ Difficulty: 0
 13
 -----
 Difficulty: 1
+.0
+..
+-----
+Difficulty: 1
 ..
 .0
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 0
+33
+..
 -----
 Difficulty: 1
 ..
 .0
 -----
 Difficulty: 0
+2.
+2.
+-----
+Difficulty: 1
 ..
+.0
+-----
+Difficulty: 0
 22
+..
 -----
 Difficulty: 1
 0.
 ..
------
-Difficulty: 0
-2.
-2.
------
-Difficulty: 1
-..
-.0
------
-Difficulty: 1
-..
-.0
------
-Difficulty: 1
-..
-.0
------
-Difficulty: 0
-..
-33
------
-Difficulty: 0
-..
-33
------
-Difficulty: 1
-0.
-..
------
-Difficulty: 0
-..
-31
 -----
 Difficulty: 0
 ..
@@ -138,205 +174,129 @@ Difficulty: 0
 3.
 1.
 -----
-Difficulty: 1
-0.
-..
------
-Difficulty: 1
-0.
-..
------
-Difficulty: 1
-0.
-..
------
 Difficulty: 0
+.3
 .1
-.1
------
-Difficulty: 0
-33
-..
------
-Difficulty: 1
-.0
-..
------
-Difficulty: 0
-..
-22
------
-Difficulty: 0
-3.
-3.
------
-Difficulty: 0
-22
-..
------
-Difficulty: 1
-..
-.0
------
-Difficulty: 1
-..
-.0
------
-Difficulty: 1
-..
-.0
------
-Difficulty: 1
-0.
-..
------
-Difficulty: 1
-0.
-..
 -----
 Difficulty: 0
 .2
 .2
 -----
 Difficulty: 0
-.1
-.1
------
-Difficulty: 1
-0.
-..
------
-Difficulty: 0
-..
-33
------
-Difficulty: 0
-31
-..
------
-Difficulty: 0
-..
-31
------
-Difficulty: 0
-3.
-3.
------
-Difficulty: 0
 ..
 22
 -----
 Difficulty: 1
-..
 .0
------
-Difficulty: 1
-..
-.0
------
-Difficulty: 0
-22
-..
------
-Difficulty: 1
-0.
 ..
 -----
 Difficulty: 0
-..
-33
------
-Difficulty: 0
-..
-31
------
-Difficulty: 1
-..
-.0
------
-Difficulty: 0
-.3
-.1
------
-Difficulty: 1
-..
-.0
------
-Difficulty: 0
-.3
-.3
------
-Difficulty: 1
-..
-0.
------
-Difficulty: 0
-..
-22
------
-Difficulty: 0
-22
-..
------
-Difficulty: 0
-.3
-.3
------
-Difficulty: 0
-2.
-2.
------
-Difficulty: 0
-31
-..
------
-Difficulty: 1
-0.
-..
------
-Difficulty: 1
-0.
-..
------
-Difficulty: 0
-..
-11
------
-Difficulty: 0
-2.
-2.
------
-Difficulty: 0
-..
-22
------
-Difficulty: 0
-1.
-1.
------
-Difficulty: 0
-31
-..
------
-Difficulty: 0
-1.
-1.
------
-Difficulty: 1
-..
-.0
------
-Difficulty: 0
-..
 13
------
-Difficulty: 0
-11
 ..
 -----
 Difficulty: 0
-2.
-2.
+.1
+.1
+-----
+Difficulty: 0
+..
+11
+-----
+Difficulty: 0
+3.
+1.
+-----
+Difficulty: 0
+..
+31
+-----
+Difficulty: 0
+3.
+1.
+-----
+Difficulty: 1
+.0
+..
+-----
+Difficulty: 0
+3.
+1.
+-----
+Difficulty: 0
+.2
+.2
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 0
+..
+33
+-----
+Difficulty: 0
+.3
+.3
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 1
+..
+.0
+-----
+Difficulty: 0
+.3
+.3
+-----
+Difficulty: 0
+1.
+3.
+-----
+Difficulty: 0
+1.
+3.
+-----
+Difficulty: 1
+..
+.0
+-----
+Difficulty: 1
+..
+.0
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 1
+..
+.0
+-----
+Difficulty: 0
+.1
+.3
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 0
+13
+..
+-----
+Difficulty: 1
+.0
+..
+-----
+Difficulty: 0
+.3
+.3
 -----
 Difficulty: 1
 .0
@@ -347,11 +307,11 @@ Difficulty: 0
 11
 -----
 Difficulty: 0
-13
 ..
+11
 -----
 Difficulty: 0
-13
+33
 ..
 -----
 Difficulty: 0
@@ -362,13 +322,73 @@ Difficulty: 0
 .2
 .2
 -----
+Difficulty: 1
+.0
+..
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 0
+..
+22
+-----
+Difficulty: 1
+..
+0.
+-----
+Difficulty: 1
+..
+.0
+-----
+Difficulty: 0
+1.
+3.
+-----
+Difficulty: 0
+1.
+3.
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 1
+..
+0.
+-----
+Difficulty: 1
+..
+0.
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 0
+1.
+3.
+-----
 Difficulty: 0
 .3
 .1
 -----
 Difficulty: 1
-.0
 ..
+.0
+-----
+Difficulty: 1
+..
+0.
+-----
+Difficulty: 1
+0.
+..
+-----
+Difficulty: 0
+..
+11
 -----
 Difficulty: 1
 0.
@@ -377,24 +397,4 @@ Difficulty: 1
 Difficulty: 1
 ..
 0.
------
-Difficulty: 0
-..
-31
------
-Difficulty: 0
-.3
-.3
------
-Difficulty: 0
-3.
-1.
------
-Difficulty: 1
-.0
-..
------
-Difficulty: 1
-..
-.0
 -----

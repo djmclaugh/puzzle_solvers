@@ -43,6 +43,8 @@ fn cell_to_string(view: &Option<u8>) -> String {
 #[derive(Clone, Debug)]
 pub struct Solver {
     puzzle: Puzzle,
+    remaining_edges: HashSet<Edge>,
+    remaining_edges_next_to_hints: HashSet<Edge>,
     h_edges: Vec<Vec<Edge>>,
     v_edges: Vec<Vec<Edge>>,
     recently_affected_cells: HashSet<Coordinate>,
@@ -94,25 +96,49 @@ impl Solver {
         let n = p.size;
         let mut h_edges: Vec<Vec<Edge>> = Vec::new();
         let mut v_edges: Vec<Vec<Edge>> = Vec::new();
+        let mut remaining_edges:HashSet<Edge> = HashSet::new();
+        let mut remaining_edges_next_to_hints: HashSet<Edge> = HashSet::new();
 
         for i in 0..n {
             h_edges.push(Vec::new());
             v_edges.push(Vec::new());
             for j in 0..n {
-                h_edges[i].push(Edge{is_on: false, is_off: false, row: i, col: j, edge_type: EdgeType::HORIZONTAL});
-                v_edges[i].push(Edge{is_on: false, is_off: false, row: i, col: j, edge_type: EdgeType::VERTICAL});
+                let h_edge = Edge{is_on: false, is_off: false, row: i, col: j, edge_type: EdgeType::HORIZONTAL};
+                h_edges[i].push(h_edge.clone());
+                remaining_edges.insert(h_edge.clone());
+                if (i > 0 && p.grid[i-1][j].is_some()) || p.grid[i][j].is_some() {
+                    remaining_edges_next_to_hints.insert(h_edge.clone());
+                }
+                let v_edge = Edge{is_on: false, is_off: false, row: i, col: j, edge_type: EdgeType::VERTICAL};
+                v_edges[i].push(v_edge.clone());
+                remaining_edges.insert(v_edge.clone());
+                if (j > 0 && p.grid[i][j-1].is_some()) || p.grid[i][j].is_some() {
+                    remaining_edges_next_to_hints.insert(v_edge.clone());
+                }
             }
-            v_edges[i].push(Edge{is_on: false, is_off: false, row: i, col: n, edge_type: EdgeType::VERTICAL});
+            let v_edge = Edge{is_on: false, is_off: false, row: i, col: n, edge_type: EdgeType::VERTICAL};
+            v_edges[i].push(v_edge);
+            remaining_edges.insert(v_edge.clone());
+            if p.grid[i][n-1].is_some() {
+                remaining_edges_next_to_hints.insert(v_edge.clone());
+            }
         }
         h_edges.push(Vec::new());
         for j in 0..n {
-            h_edges[n].push(Edge{is_on: false, is_off: false, row: n, col: j, edge_type: EdgeType::HORIZONTAL});
+            let h_edge = Edge{is_on: false, is_off: false, row: n, col: j, edge_type: EdgeType::HORIZONTAL};
+            h_edges[n].push(h_edge.clone());
+            remaining_edges.insert(h_edge.clone());
+            if p.grid[n-1][j].is_some() {
+                remaining_edges_next_to_hints.insert(h_edge.clone());
+            }
         }
 
         return Solver {
             puzzle: p,
             h_edges,
             v_edges,
+            remaining_edges,
+            remaining_edges_next_to_hints,
             corner_solver_data: corner_entry_solver::CornerSolverData::new(),
             inside_tracker: InsideTracker::new(n),
             paths: PathTracker::new(),
@@ -199,6 +225,9 @@ impl Solver {
         if has_changed {
             self.change_flag = true;
             self.inside_tracker.add_edge_info(&actual_edge);
+            let copy = Edge{is_on: false, is_off: false, row: edge.row, col: edge.col, edge_type: edge.edge_type};
+            self.remaining_edges.remove(&copy);
+            self.remaining_edges_next_to_hints.remove(&copy);
             let new_cells = self.cells_from_edge(edge);
             for cell in new_cells {
                 match cell {
