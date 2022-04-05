@@ -5,15 +5,24 @@ mod perm;
 use std::io::Write;
 
 fn main() {
-    for n in 2..4 {
-        let mut file = std::fs::File::create(format!("towers/towers_{}.txt", n)).expect("create failed");
-        for i in 0..100 {
-            println!("{}", i);
-            let p = towers::maker::make_puzzle(n);
-            file.write_all((p.to_tatham_string() + "\n").as_bytes()).expect("write failed");
-        }
-        println!("Data written to towers/towers_{}.txt", n);
+    let p = latin::puzzle::Puzzle::from_tatham_string("3:2c2c2");
+    let mut s = latin::solver::solver::Solver::new(p);
+    let sols = s.full_solve(0, true);
+    if sols.len() == 1 {
+        println!("{}", sols[0].to_string());
+    } else {
+        println!("{}", s.to_string());
     }
+
+    // for n in 2..4 {
+    //     let mut file = std::fs::File::create(format!("towers/towers_{}.txt", n)).expect("create failed");
+    //     for i in 0..100 {
+    //         println!("{}", i);
+    //         let p = towers::maker::make_puzzle(n);
+    //         file.write_all((p.to_tatham_string() + "\n").as_bytes()).expect("write failed");
+    //     }
+    //     println!("Data written to towers/towers_{}.txt", n);
+    // }
 
     // for n in 2..10 {
     //     let mut file = std::fs::File::create(format!("loopy/loopy_{}.txt", n)).expect("create failed");

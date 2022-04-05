@@ -2,7 +2,7 @@ fn char_to_cell(c: char) -> Option<u8> {
     if c == '.' || c == '·' {
       return None;
     } else {
-      return Some(c.to_digit(10).unwrap() as u8);
+      return Some((c.to_digit(10).unwrap() as u8) - 1);
     }
 }
 
@@ -165,7 +165,7 @@ impl Puzzle {
                             val += grid_string.next().unwrap().to_digit(10).unwrap();
                             p = grid_string.peek();
                         }
-                        grid[i].push(Option::Some(val as u8));
+                        grid[i].push(Option::Some((val as u8) - 1));
                     }
                 }
                 if counter > 0 {
