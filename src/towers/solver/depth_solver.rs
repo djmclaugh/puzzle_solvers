@@ -10,7 +10,7 @@ pub struct Triple (usize, usize, u8);
 // Solver methods based on making a guess and seeing if we end up with a contradiction.
 impl Solver {
     pub fn depth_solve(& mut self, depth: u8, should_log: bool) -> Vec<Solver> {
-        let n = self.puzzle.size;
+        let n = self.puzzle.latin.size;
         let mut to_remove: Option<Triple> = None;
         let mut can_skip: HashSet<Triple> = HashSet::new();
         let mut solutions: Vec<Solver> = Vec::new();

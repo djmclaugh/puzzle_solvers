@@ -1,1 +1,2 @@
-pub mod square;
+pub mod maker;
+pub mod puzzle;

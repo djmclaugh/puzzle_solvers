@@ -105,7 +105,7 @@ fn get_coordinate<'a>(d: &Direction, n: usize, i1: usize, i2: usize) -> Coordina
 
 impl Solver {
     pub fn to_detailed_string(&self) -> String {
-      let n = self.puzzle.size;
+      let n = self.puzzle.latin.size;
       let mut rows: Vec<String> = Vec::new();
       // North hints
       let mut row: Vec<String> = Vec::new();
@@ -140,7 +140,7 @@ impl Solver {
     }
 
     pub fn new(p: Puzzle) -> Solver {
-        let n = p.size;
+        let n = p.latin.size;
         let mut grid: Vec<Vec<HashSet<u8>>> = Vec::new();
         let mut recently_solved: Vec<Coordinate> = Vec::new();
         let mut value_count_by_row = Vec::new();
@@ -161,7 +161,7 @@ impl Solver {
 
         for row in 0..n {
             for column in 0..n {
-                match p.grid[row][column] {
+                match p.latin.grid[row][column] {
                     Some(x) => {
                         grid[row][column].insert(x);
                         value_count_by_row[row][x as usize] += 1;
@@ -222,6 +222,7 @@ impl Solver {
     }
 
     fn remove(& mut self, c: &Coordinate, value: &u8) {
+        let n = self.puzzle.latin.size;
         let set = self.grid[c.0].get_mut(c.1).unwrap();
         let has_removed = set.remove(value);
         if has_removed {
@@ -242,7 +243,7 @@ impl Solver {
                 self.status = Status::Unsolvable;
             }
         }
-        if has_removed && self.solved_count == self.puzzle.size * self.puzzle.size {
+        if has_removed && self.solved_count == n * n {
             if self.satisfies_contraints() {
                 self.status = Status::UniqueSolution;
             } else {
@@ -252,7 +253,7 @@ impl Solver {
     }
 
     fn set(& mut self, c: &Coordinate, value: &u8) -> bool {
-        for i in 0..self.puzzle.size {
+        for i in 0..self.puzzle.latin.size {
             let u = i as u8;
             if u != *value {
                 self.remove(c, &u);
@@ -262,7 +263,7 @@ impl Solver {
     }
 
     fn satisfies_contraints(&self) -> bool {
-        let n = self.puzzle.size;
+        let n = self.puzzle.latin.size;
         // Check if each element in each row is unique.
         for row in 0..n {
             let mut seen: HashSet<u8> = HashSet::new();
@@ -314,7 +315,7 @@ impl Solver {
     }
 
     fn view_solve(& mut self) {
-        for i in 0..self.puzzle.size {
+        for i in 0..self.puzzle.latin.size {
             for d in [Direction::NORTH, Direction::EAST, Direction::SOUTH, Direction::WEST] {
                 if self.status == Status::Unsolvable {
                     return;
@@ -354,7 +355,7 @@ impl Solver {
     // }
 
     fn analyze_view(& mut self, from: Direction, index: usize) -> bool {
-        let n = self.puzzle.size;
+        let n = self.puzzle.latin.size;
         let view:Option<u8> = match from {
             Direction::NORTH => self.puzzle.north[index],
             Direction::EAST => self.puzzle.east[index],
@@ -455,7 +456,7 @@ impl Solver {
     }
 
     fn initial_view_solve(&mut self) {
-        let n = self.puzzle.size;
+        let n = self.puzzle.latin.size;
 
         let mut north_hints = Vec::new();
         for i in 0..n {

@@ -35,7 +35,7 @@ impl Solver {
         while !self.recently_solved.is_empty() && self.status == Status::InProgress {
             let c = self.recently_solved.pop().unwrap();
             let value = self.grid[c.0][c.1].iter().next().unwrap().clone();
-            for i in 0..self.puzzle.size {
+            for i in 0..self.puzzle.latin.size {
                 if i != c.1 {
                     self.remove(&Coordinate(c.0, i), &value);
                 }
@@ -49,7 +49,7 @@ impl Solver {
     pub fn handle_unique_in_row(& mut self) {
         while !self.recently_unique_in_row.is_empty() && self.status == Status::InProgress {
             let (row, value) = self.recently_unique_in_row.pop().unwrap();
-            for i in 0..self.puzzle.size {
+            for i in 0..self.puzzle.latin.size {
                 if self.grid[row][i].contains(&value) {
                     self.set(&Coordinate(row, i), &value);
                 }
@@ -60,7 +60,7 @@ impl Solver {
     pub fn handle_unique_in_column(& mut self) {
         while !self.recently_unique_in_column.is_empty() && self.status == Status::InProgress {
             let (column, value) = self.recently_unique_in_column.pop().unwrap();
-            for i in 0..self.puzzle.size {
+            for i in 0..self.puzzle.latin.size {
                 if self.grid[i][column].contains(&value) {
                     self.set(&Coordinate(i, column), &value);
                 }
@@ -93,7 +93,7 @@ impl Solver {
     }
 
     // pub fn grouping_solve(&mut self) {
-    //     let n = self.puzzle.size;
+    //     let n = self.puzzle.latin.size;
     //     for i in 0..n {
     //         // The values of the cells in row i (indexed by column);
     //         let row: Vec<&HashSet<u8>> = self.grid[i].iter().collect();

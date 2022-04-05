@@ -2,13 +2,13 @@ use std::collections::HashSet;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
-// Note this doesn't generate the permutations unifiormaly randomly
+// Note this doesn't generate the permutations uniformaly randomly
 pub fn random_perm(n: u8, restrictions: &Vec<Vec<u8>>) -> Vec<u8> {
     let mut positions: Vec<usize> = vec![0; n as usize];
     let mut all: HashSet<u8> = HashSet::new();
     let mut r: Vec<HashSet<usize>> = vec![HashSet::new(); n as usize];
-    let mut temp_r:Vec<HashSet<usize>> = vec![HashSet::new(); n as usize];
-    let mut taken:HashSet<usize> = HashSet::new();
+    let mut temp_r: Vec<HashSet<usize>> = vec![HashSet::new(); n as usize];
+    let mut taken: HashSet<usize> = HashSet::new();
 
     for i in 0..n {
         all.insert(i);

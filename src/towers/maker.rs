@@ -1,15 +1,15 @@
 use super::puzzle::Puzzle;
 use super::solver::Solver;
-use crate::latin::square::Square;
+use crate::latin;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
 pub fn make_puzzle(size: u8) -> Puzzle {
     // Start with a random latin square
-    let square: Square = Square::random(size);
+    let square: latin::puzzle::Puzzle = latin::maker::random_filled(size);
 
     // Generate the full hints puzzle
-    let p = Puzzle::from_square(&square, 0);
+    let p = Puzzle::from_latin_with_view_hints(square, 0);
 
     let mut hints_to_remove: Vec<bool> = vec![false; p.number_of_hints()];
     let mut cell_hints: Vec<usize> = Vec::new();

@@ -1,4 +1,4 @@
-use crate::latin::square::Square;
+use crate::latin;
 
 // fn string_to_view(view: &str) -> Option<u8> {
 //     if view == "?" {
@@ -22,6 +22,17 @@ pub fn row<T>(grid: &Vec<Vec<T>>, index: usize) -> Vec<&T> {
 
 pub fn column<T>(grid: &Vec<Vec<T>>, index: usize) -> Vec<&T> {
     return grid.iter().map(|x| &x[index]).collect();
+}
+
+pub fn calculate_view_option(row: &Vec<&Option<u8>>) -> Option<u8> {
+    let mut u8_row: Vec<&u8> = Vec::new();
+    for i in row {
+        match i {
+            Some(x) => { u8_row.push(&x); },
+            None => { return None; },
+        };
+    }
+    return Some(calculate_view(&u8_row));
 }
 
 pub fn calculate_view(row: &Vec<&u8>) -> u8 {
@@ -61,18 +72,18 @@ pub fn calculate_view(row: &Vec<&u8>) -> u8 {
 // }
 
 pub struct Puzzle {
-    pub size: usize,
-    pub difficulty: u8,
+    pub latin: latin::puzzle::Puzzle,
     pub north: Vec<Option<u8>>,
     pub east: Vec<Option<u8>>,
     pub south: Vec<Option<u8>>,
     pub west: Vec<Option<u8>>,
-    pub grid: Vec<Vec<Option<u8>>>,
+    pub difficulty: u8,
 }
 
 impl Puzzle {
-    pub fn to_string(&self) -> String {
-      let n = self.size;
+
+    pub fn to_human_string(&self) -> String {
+      let n = self.latin.size;
       let mut rows: Vec<String> = Vec::new();
       // North hints
       let mut row: Vec<String> = Vec::new();
@@ -95,7 +106,7 @@ impl Puzzle {
               Some(x) => x.to_string(),
               None => String::from("?"),
           });
-          let content: Vec<String> = self.grid[i].iter().map(|hint| {
+          let content: Vec<String> = self.latin.grid[i].iter().map(|hint| {
               match hint {
                 Some(x) => x.to_string(),
                 None => String::from("?"),
@@ -127,49 +138,68 @@ impl Puzzle {
       return rows.join("\n");
     }
 
+    pub fn to_tatham_string(&self) -> String {
+        let n = self.latin.size;
+        let mut views: Vec<String> = Vec::new();
+        for v in self.north.iter() {
+            match v {
+                Some(x) => {views.push(x.to_string())},
+                None => {views.push(String::from(""))},
+            };
+        }
+        for v in self.south.iter() {
+            match v {
+                Some(x) => {views.push(x.to_string())},
+                None => {views.push(String::from(""))},
+            };
+        }
+        for v in self.west.iter() {
+            match v {
+                Some(x) => {views.push(x.to_string())},
+                None => {views.push(String::from(""))},
+            };
+        }
+        for v in self.east.iter() {
+            match v {
+                Some(x) => {views.push(x.to_string())},
+                None => {views.push(String::from(""))},
+            };
+        }
+        return [n.to_string() + ":", views.join("/") + ",", self.latin.to_tatham_string_without_size()].concat();
+    }
+
     pub fn clone(&self) -> Puzzle {
         return Puzzle {
-            size: self.north.len(),
+            latin: self.latin.clone(),
             difficulty: self.difficulty,
             north: self.north.clone(),
             east: self.east.clone(),
             south: self.south.clone(),
             west: self.west.clone(),
-            grid: self.grid.clone(),
         }
     }
 
-    pub fn from_square(s: &Square, difficulty: u8) -> Puzzle {
-        return Puzzle::from_grid(&s.grid, difficulty);
-    }
-
-    pub fn from_grid(g: &Vec<Vec<u8>>, difficulty: u8) -> Puzzle {
-        let n = g.len();
-        let mut grid = Vec::new();
-        for column in g {
-            grid.push(column.iter().map(|cell| Some(*cell)).collect());
-        }
+    pub fn from_latin_with_view_hints(latin: latin::puzzle::Puzzle, difficulty: u8) -> Puzzle {
+        let n = latin.size;
 
         let mut north = Vec::new();
         let mut east = Vec::new();
         let mut south = Vec::new();
         let mut west = Vec::new();
-        for i in 0..n {
-            north.push(Some(calculate_view(&column(g, i))));
-            let mut col = column(g, i);
-            col.reverse();
-            south.push(Some(calculate_view(&col)));
 
-            west.push(Some(calculate_view(&row(g, i))));
-            let mut r = row(g, i);
-            r.reverse();
-            east.push(Some(calculate_view(&r)));
+        for i in 0..n {
+            let mut col = latin.column(i);
+            north.push(calculate_view_option(&col));
+            col.reverse();
+            south.push(calculate_view_option(&col));
+
+            let mut row = latin.row(i);
+            west.push(calculate_view_option(&row));
+            row.reverse();
+            east.push(calculate_view_option(&row));
         }
 
-
-        return Puzzle {
-            size: grid.len(), difficulty, north, east, south, west, grid,
-        };
+        return Puzzle { latin, north, east, south, west, difficulty };
     }
 
     // pub fn from_string(s: &str) -> Puzzle {
@@ -211,7 +241,7 @@ impl Puzzle {
     pub fn number_of_hints(&self) -> usize {
         let mut total = 0;
 
-        for column in &self.grid {
+        for column in &self.latin.grid {
             for cell in column {
                 if cell.is_some() {
                     total += 1;
@@ -244,15 +274,15 @@ impl Puzzle {
     }
 
     pub fn with_hints_removed(&self, hints_to_remove: &Vec<bool>, difficulty: u8) -> Puzzle {
-        let n = self.grid.len();
+        let n = self.latin.grid.len();
         let mut total = 0;
 
-        let mut grid = self.grid.clone();
+        let mut latin = self.latin.clone();
         for i in 0..n {
             for j in 0..n {
-                if grid[i][j].is_some() {
+                if latin.grid[i][j].is_some() {
                     if hints_to_remove[total] {
-                        grid[i][j] = None;
+                        latin.grid[i][j] = None;
                     }
                     total += 1;
                 }
@@ -296,8 +326,6 @@ impl Puzzle {
             }
         }
 
-        return Puzzle {
-            size: north.len(), difficulty, north, east, south, west, grid,
-        };
+        return Puzzle { latin, north, east, south, west, difficulty };
     }
 }
