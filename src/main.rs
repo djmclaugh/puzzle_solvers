@@ -5,8 +5,10 @@ mod perm;
 use std::io::Write;
 
 fn main() {
-    let p = latin::puzzle::Puzzle::from_tatham_string("3:2c2c2");
-    let mut s = latin::solver::solver::Solver::new(p);
+    let p = latin::puzzle::Puzzle::from_tatham_string("12:12c6b1c5c1c3a8b10_11_6a5_2_1d8_11a7_5_9a12a4c9a12_7a11_2b3c9_10b7b11d8d5b2_9_6_6b8b4_12a9_11b3_5_6a10a4_7b2b9_3d1_7_4_12_3_2_11b1a7a6e2_3e6_7");
+    println!("Solving puzzle: ");
+    let mut s = latin::solver::Solver::new(p);
+    println!("{}", s.to_string());
     let sols = s.full_solve(0, true);
     if sols.len() == 1 {
         println!("{}", sols[0].to_string());
@@ -14,15 +16,28 @@ fn main() {
         println!("{}", s.to_string());
     }
 
-    // for n in 2..4 {
-    //     let mut file = std::fs::File::create(format!("towers/towers_{}.txt", n)).expect("create failed");
-    //     for i in 0..100 {
-    //         println!("{}", i);
-    //         let p = towers::maker::make_puzzle(n);
-    //         file.write_all((p.to_tatham_string() + "\n").as_bytes()).expect("write failed");
-    //     }
-    //     println!("Data written to towers/towers_{}.txt", n);
-    // }
+    let p_type = "latin";
+    let size_range = 12..13;
+    let quantity = 1;
+    let min_difficulty = 1;
+
+    if p_type.eq("latin") {
+        println!("Generating {} puzzles", p_type);
+        for n in size_range {
+            let mut file = std::fs::File::create(format!("{}/{}_{}.txt", p_type, p_type, n)).expect("create failed");
+            for i in 0..quantity {
+                println!("{}", i);
+                let mut p = latin::maker::make_puzzle(n);
+                while p.difficulty < min_difficulty {
+                    println!("Generated puzzle too easy...");
+                    p = latin::maker::make_puzzle(n);
+                }
+                file.write_all((p.difficulty.to_string() + "\n").as_bytes()).expect("write failed");
+                file.write_all((p.to_tatham_string() + "\n\n").as_bytes()).expect("write failed");
+            }
+            println!("Data written to {}/{}_{}.txt", p_type, p_type, n);
+        }
+    }
 
     // for n in 2..10 {
     //     let mut file = std::fs::File::create(format!("loopy/loopy_{}.txt", n)).expect("create failed");

@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
 pub struct Triple {
     pub row: u8,
@@ -43,5 +45,23 @@ impl Triple {
             col: self.col,
             val: self.val,
         };
+    }
+
+    pub fn with_row(&self, row: u8) -> Triple {
+        return Triple { row, col: self.col, val: self.val };
+    }
+
+    pub fn with_col(&self, col: u8) -> Triple {
+        return Triple { row: self.row, col, val: self.val };
+    }
+
+    pub fn with_val(&self, val: u8) -> Triple {
+        return Triple { row: self.row, col: self.col, val };
+    }
+}
+
+impl fmt::Display for Triple {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({},{}):{}", self.row, self.col, self.val)
     }
 }

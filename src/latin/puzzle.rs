@@ -19,6 +19,7 @@ pub fn column<T>(grid: &Vec<Vec<T>>, index: usize) -> Vec<&T> {
 pub struct Puzzle {
     pub size: usize,
     pub grid: Vec<Vec<Option<u8>>>,
+    pub difficulty: u8,
 }
 
 impl Puzzle {
@@ -70,7 +71,7 @@ impl Puzzle {
                               counter = 0;
                           }
                       }
-                      char_list.push(x.to_string());
+                      char_list.push((x + 1).to_string());
                   },
                   None => {
                       counter += 1;
@@ -103,16 +104,9 @@ impl Puzzle {
         return hint.is_some() && hint.unwrap() == value;
     }
 
-    pub fn clone(&self) -> Puzzle {
-        return Puzzle {
-            size: self.grid.len(),
-            grid: self.grid.clone(),
-        }
-    }
-
     pub fn from_grid(g: &Vec<Vec<Option<u8>>>) -> Puzzle {
         return Puzzle {
-            size: g.len(), grid: g.clone(),
+            size: g.len(), grid: g.clone(), difficulty: 0,
         };
     }
 
@@ -132,7 +126,7 @@ impl Puzzle {
             row = iter.next();
         }
 
-        return Puzzle { size: grid.len(), grid };
+        return Puzzle { size: grid.len(), grid, difficulty: 0 };
     }
 
     pub fn from_tatham_string(s: &str) -> Puzzle {
@@ -174,7 +168,7 @@ impl Puzzle {
                 }
             }
         }
-        return Puzzle { size: n, grid };
+        return Puzzle { size: n, grid, difficulty: 0 };
     }
 
     pub fn number_of_hints(&self) -> usize {
@@ -208,7 +202,7 @@ impl Puzzle {
         }
 
         return Puzzle {
-            size: grid.len(), grid,
+            size: grid.len(), grid, difficulty,
         };
     }
 }

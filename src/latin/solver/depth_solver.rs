@@ -1,5 +1,5 @@
-use super::solver::Solver;
-use super::solver::Status;
+use super::Solver;
+use super::Status;
 use super::triple::*;
 
 use std::collections::HashSet;
@@ -26,27 +26,34 @@ impl Solver {
             }
 
             // Try setting a possibility.
-            // Try the highest value first as they tend to give the move information.
-            let last = possibilities.iter().last().unwrap();
+            // Try the highest value first as they tend to give the most information.
+            let last = possibilities.iter().max().unwrap();
 
             let mut copy = self.clone();
             let guess = Triple{ row: row_col.row, col: row_col.col, val: last.clone()};
-            copy.set(&guess);
+            if should_log {
+                println!("\nStuck! Need to guess");
+                println!("{}", self.to_string());
+                println!("Guessing {}, in cell ({}, {})", guess.val + 1, guess.row + 1, guess.col + 1);
+            }
+            copy.to_set.insert(guess.clone());
             let solutions = copy.full_solve(depth + 1, should_log);
-
             if solutions.len() > 1 {
                 // If more than one solution with this guess, then we can stop looking.
                 self.status = Status::MultipleSolutions;
                 return solutions;
             } else if solutions.is_empty() {
+                if should_log {
+                    println!("Guess leads to contradiciton; Reverting.");
+                }
                 // If no solutions with this guess, then we can remove this guess.
-                self.remove(&guess);
+                self.to_remove.insert(guess.clone());
                 // See if we can make more progress now that this guess is removed.
                 self.non_recursive_solve();
             } else {
                 // If exactly one solution with this guess, then we need to try it without the guess.
                 copy = self.clone();
-                copy.remove(&guess);
+                copy.to_remove.insert(guess.clone());
                 let other_solutions = copy.full_solve(depth + 1, should_log);
                 if other_solutions.is_empty() {
                     // If no solutions without this guess, then we had the unique solution with
